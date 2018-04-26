@@ -1,0 +1,357 @@
+  body {
+  text-align: center;
+  font-family: arial;
+  cursor: default;
+  font-size: 16px;
+}
+
+.instructions
+{
+	text-align: left !important;
+}
+h1, h2 {
+  display: inline-block;
+}
+h1 {
+  font-size: 20px
+}
+h2 {
+  font-size: 20px;
+}
+.box {
+  border: 2px solid blue;
+	padding: 0px;
+}
+
+.rounded-box
+{
+	border-radius: 15px;
+    background: #c0c0c0;
+    padding: 20px; 
+}
+
+#butItemsDiv
+{
+	border-radius: 15px;
+    background: #ffffff;
+}
+
+.rounded-box-dark
+{
+	border-radius: 15px;
+    background: #808080;
+}
+
+.wrong{
+	color:red;
+}
+
+/* unused currently; flex is much better*/
+/* a sneaky trick to allow us to ghost elements for vertical centering */
+.container {
+  
+}
+.container:before {
+  content: '';
+  display: inline-block;
+  height: 100%;
+  vertical-align: middle;
+  margin-right: -0.25em; /* Adjusts for spacing */
+}
+
+/* The element to be centered, can also be of any width and height */ 
+.centered-vertical {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.instruction-pic
+{
+	display: relative;
+}
+.flex {
+  display: flex;
+  justify-content: center;
+}
+
+.flex-vert {
+  display: flex;
+  justify-content: center;
+  flex-flow: column;
+}
+
+.flex-vert-space-between {
+  display: flex;
+  justify-content: space-between;
+  flex-flow: column;
+}
+
+.flex-table {
+	display: flex;
+	align-items: center;
+	flex-flow: column;
+	justify-content: center;
+}
+
+.flex-child {
+  margin: .5%;
+  flex: 1 1 auto;
+  min-height: 25px;
+}
+
+.flex-child-no-grow {
+	margin: .5%;
+	flex: 0 1 auto;
+	min-height: 25px;
+}
+
+.flex-double-child {
+  margin: .5%;
+  flex: 2 2 auto;
+}
+
+#gameContainer {
+  height: 800px;
+  max-width: 1200px;
+}
+
+.messageHistory {
+	min-height: 55%;
+	height: 55%;
+	/*max-height: 60%; unfortunately, chrome has a bug that causes this to explode.  */
+}
+
+#tips {
+	min-height: 5%;
+}
+
+.messages {
+	min-height: 30%;
+	height: 30%;
+}
+
+.message{
+	
+}
+
+
+.emotion-grid {
+  flex-wrap: wrap;
+  min-height: 10%;
+}
+
+.vh-side {
+	max-width: 48%;
+}
+
+.menu-side {
+	max-width: 48%;
+}
+
+#vhImg {
+  -webkit-transition: box-shadow linear 1s;
+  transition: box-shadow linear 1s;
+}
+
+.butEmotion {
+  margin: .5%;
+  height: 40px;
+  width: 40px;
+  -webkit-transition: box-shadow linear 1s;
+  transition: box-shadow linear 1s;
+}
+
+.itemButton {
+  max-height:40px;
+  max-width:40px;
+  height:40px;
+  width: 40px;
+}
+
+.compareButton {
+  height:40px;
+  width: 40px;
+}
+
+.butPanel
+{
+	max-height:40px;
+}
+
+.waitingImage {
+	height: 50px;
+	width: 75px;
+}
+
+.staticPhoto {
+	border-radius: 20px;
+    border: 2px solid #FFFFFF;
+}
+
+
+.centered {
+  margin: auto;
+}
+
+.hidden {
+  display: none;
+}
+
+.reallyHidden {
+	display: none;
+}
+
+.scrolling {
+	overflow: scroll;
+}
+
+#gridOverlay {
+  position: absolute;
+  z-index: 10;
+  background-color: rgba(0,0,0,0.3);
+}
+
+#butFormalAccept {
+	background-color: #4CAF50; /* Green */
+    color: white;
+}
+
+#exchange-grid {
+	position: relative;
+	z-index: 1;
+}
+
+.vert-align-top{
+	vertical-align: top;
+}
+
+.vert-align{
+	vertical-align: middle;
+}
+
+.vert-align-bot{
+	vertical-align: bottom;
+}
+
+
+/* 20% doesn't work here...? */
+.tableSlot{
+	flex: 1;
+	/*height: 18%;
+	max-height: 18%;*/
+	padding: 2px;
+	background: #FFFFFF;
+}
+
+.tableSlot-noBox{
+	flex: 1;
+	/*height: 18%;
+	max-height: 18%;*/
+	padding: 4px;
+}
+
+/* ============================================================================================================================
+== BUBBLE WITH AN ISOCELES TRIANGLE
+** ============================================================================================================================ */
+
+/* THE SPEECH BUBBLE
+------------------------------------------------------------------------------------------------------------------------------- */
+
+.triangle-isosceles {
+  position:relative;
+  padding:15px;
+  margin: 5px 0 0;
+  color:#ffffff;
+  background:#f3961c; /* default background for browsers without gradient support */
+  /* css3 */
+  background:-webkit-gradient(linear, 0 0, 0 100%, from(#f9d835), to(#f3961c));
+  background:-moz-linear-gradient(#f9d835, #f3961c);
+  background:-o-linear-gradient(#f9d835, #f3961c);
+  background:linear-gradient(#f9d835, #f3961c);
+  -webkit-border-radius:2px;
+  -moz-border-radius:2px;
+  border-radius:2px;
+}
+
+/* Variant : for top positioned triangle
+------------------------------------------ */
+
+.triangle-isosceles.top {
+  background:-webkit-gradient(linear, 0 0, 0 100%, from(#f3961c), to(#f9d835));
+  background:-moz-linear-gradient(#f3961c, #f9d835);
+  background:-o-linear-gradient(#f3961c, #f9d835);
+  background:linear-gradient(#f3961c, #f9d835);
+}
+
+/* Variant : for left positioned triangle
+------------------------------------------ */
+
+.triangle-isosceles.left {
+  margin-left:50px;
+  background:#454545;
+  text-align: left;
+  border-radius: 15px;
+}
+
+/* Variant : for right positioned triangle
+------------------------------------------ */
+
+.triangle-isosceles.right {
+  margin-right:50px;
+  background:#648aae;
+  text-align: right;
+  border-radius: 15px;
+}
+
+/* THE TRIANGLE
+------------------------------------------------------------------------------------------------------------------------------- */
+
+/* creates triangle */
+.triangle-isosceles:after {
+  content:"";
+  position:absolute;
+  bottom:-15px; /* value = - border-top-width - border-bottom-width */
+  left:50px; /* controls horizontal position */
+  border-width:15px 15px 0; /* vary these values to change the angle of the vertex */
+  border-style:solid;
+  border-color:#0080c0 transparent;
+  /* reduce the damage in FF3.0 */
+  display:block;
+  width:0;
+}
+
+/* Variant : top
+------------------------------------------ */
+
+.triangle-isosceles.top:after {
+  top:-15px; /* value = - border-top-width - border-bottom-width */
+  right:50px; /* controls horizontal position */
+  bottom:auto;
+  left:auto;
+  border-width:0 15px 15px; /* vary these values to change the angle of the vertex */
+  border-color:#0080c0 transparent;
+}
+
+/* Variant : left
+------------------------------------------ */
+
+.triangle-isosceles.left:after {
+  top:16px; /* controls vertical position */
+  left:-50px; /* value = - border-left-width - border-right-width */
+  bottom:auto;
+  border-width:10px 50px 10px 0;
+  border-color:transparent #454545;
+}
+
+/* Variant : right
+------------------------------------------ */
+
+.triangle-isosceles.right:after {
+  top:16px; /* controls vertical position */
+  right:-50px; /* value = - border-left-width - border-right-width */
+  bottom:auto;
+  left:auto;
+  border-width:10px 0 10px 50px;
+  border-color:transparent #648aae;
+}
+

@@ -1,0 +1,34 @@
+#Agent and Game selection
+
+agent=edu.usc.ict.iago.agent.IAGOPinocchioVH
+gamespec=edu.usc.ict.iago.views.ResourceDistributiveGameSpec,edu.usc.ict.iago.views.AuctionWarsGameSpec,edu.usc.ict.iago.views.ResourceGameSpec
+
+
+#Sets the mail credentials for this servlet, which allows it to send email notifications.  Leaving blank is fine; will disable email config.
+#Must be set before sending mail for each servlet.  Multiple servlets may use identical credentials
+#email_user: the user name, e.g., iago
+#email_pass: the password, e.g., myPassword99
+#email_sender_name: the sender, required for some email systems, e.g., iago@website.com
+#email_smtpAuth: if the mail server uses smtp authentication (usually true, occasionally false)
+#email_smtpHost: the smtp host, e.g., exchange.website.com
+#email_smtpPort: the smtp port, e.g., 25
+
+email_user=iago
+email_pass=****
+email_sender_name=IAGO <iago@ict.usc.edu>
+email_smtpAuth=true
+email_smtpHost=exchange.ict.usc.edu
+email_smtpPort=25
+
+
+#Sets data export modes.  You may enable any or all.  If none are enabled, no data will be logged.
+#Note that dataMode_log will only work if debugLevel is also at debug or higher.
+#it is highly recommended that you do not change the dataMode settings, as they are configured for simplest operation
+
+dataMode_log=enabled
+dataMode_email=disabled
+dataMode_db=disabled
+
+#DebugLevel (debug, warn, error, silenced)
+
+debugLevel=DEBUG
