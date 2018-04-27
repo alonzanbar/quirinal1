@@ -11,7 +11,7 @@ import edu.usc.ict.iago.utils.Preference;
 import edu.usc.ict.iago.utils.ServletUtils;
 import edu.usc.ict.iago.utils.Preference.Relation;
 
-class AgentUtilsExtension 
+public class AgentUtilsExtension 
 {
 	private GameSpec game;
 	private ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();

@@ -1,6 +1,6 @@
 #Agent and Game selection
 
-agent=edu.usc.ict.iago.agent.IAGOPinocchioVH
+agent=edu.usc.ict.iago.quirinal.agent.IAGOQuirinalVH
 gamespec=edu.usc.ict.iago.views.ResourceDistributiveGameSpec,edu.usc.ict.iago.views.AuctionWarsGameSpec,edu.usc.ict.iago.views.ResourceGameSpec
 
 
