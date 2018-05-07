@@ -13,42 +13,50 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 	private int count = 0;
 	@Override
 	public String getExpression(History history) 
-	{
-		//our basic version is ignorant of history
-		//it simply cycles through all expressions
-		count++;
-		if (count >= expressions.length)
-			count = 0;
-		return expressions[count];
+	{		
+		//Well behaving agent
+		if(history.getPlayerHistory().getLast().getType().equals(Event.EventClass.SEND_EXPRESSION)){
+			if(history.getPlayerHistory().getLast().getMessage().equals("sad"))
+				return "sad";
+			if(history.getPlayerHistory().getLast().getMessage().equals("happy"))
+				return "happy";
+			if(history.getPlayerHistory().getLast().getMessage().equals("surprised"))
+				return "insincereSmile";
+			if(history.getPlayerHistory().getLast().getMessage().equals("angry"))
+				return "afraid";
+		} 
+		return "";
 		
-		//this version mirrors the player instead
-//		if(history.getPlayerHistory().getLast().getType().equals(Event.EventClass.SEND_EXPRESSION)){
-//			if(history.getPlayerHistory().getLast().getMessage().equals("sad"))
-//				return "sad";
-//			if(history.getPlayerHistory().getLast().getMessage().equals("happy"))
-//				return "happy";
-//			if(history.getPlayerHistory().getLast().getMessage().equals("surprised"))
-//				return "surprised";
-//			if(history.getPlayerHistory().getLast().getMessage().equals("angry"))
-//				return "angry";
-//		} 
-//		return "";
+		/*
+		// Nasty behavior
+		if(history.getPlayerHistory().getLast().getType().equals(Event.EventClass.SEND_EXPRESSION)){
+			if(history.getPlayerHistory().getLast().getMessage().equals("sad"))
+				return "angry";
+			if(history.getPlayerHistory().getLast().getMessage().equals("happy"))
+				return "happy";
+			if(history.getPlayerHistory().getLast().getMessage().equals("surprised"))
+				return "happy";
+			if(history.getPlayerHistory().getLast().getMessage().equals("angry"))
+				return "netural";
+		} 
+		return "";
+		*/
 		
 	}
 	@Override
 	protected String getSemiFairEmotion() {
 		// TODO Auto-generated method stub
-		return null;
+		return "netural";
 	}
 	@Override
 	protected String getFairEmotion() {
 		// TODO Auto-generated method stub
-		return null;
+		return "happy";
 	}
 	@Override
 	protected String getUnfairEmotion() {
 		// TODO Auto-generated method stub
-		return null;
+		return "netural";
 	}
 
 }
