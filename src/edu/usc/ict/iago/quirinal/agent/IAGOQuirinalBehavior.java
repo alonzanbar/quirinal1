@@ -3,66 +3,111 @@ package edu.usc.ict.iago.quirinal.agent;
 
 
 
+import java.util.ArrayList;
+
 import edu.usc.ict.iago.agent.AgentUtilsExtension;
 import edu.usc.ict.iago.agent.IAGOCoreBehavior;
 import edu.usc.ict.iago.utils.BehaviorPolicy;
+import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.History;
 import edu.usc.ict.iago.utils.Offer;
 
 public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPolicy {
 	
-	private Offer[] offers = new Offer[2];
-	public IAGOQuirinalBehavior()
+	private AgentUtilsExtension utils;
+	private GameSpec game;	
+	private Offer allocated;
+		
+	@Override
+	protected void setUtils(AgentUtilsExtension utils)
 	{
-		Offer o = new Offer(4);
-		o.setItem(0, new int[] {5, 0, 0});
-		o.setItem(1, new int[] {0, 5, 0});
-		o.setItem(2, new int[] {0, 2, 3});
-		o.setItem(3, new int[] {0, 5, 0});
-		offers[0] = o;
-		Offer o2 = new Offer(4);
-		o2.setItem(0, new int[] {5, 0, 0});
-		o2.setItem(1, new int[] {5, 0, 0});
-		o2.setItem(2, new int[] {3, 0, 2});
-		o2.setItem(3, new int[] {0, 0, 5});
-		offers[1] = o2;
+		this.utils = utils;		
+		this.game = this.utils.getSpec();
+		allocated = new Offer(game.getNumIssues());
+		for(int i = 0; i < game.getNumIssues(); i++)
+		{
+			int[] init = {0, game.getIssueQuants()[i], 0};
+			allocated.setItem(i, init);
+		}
 	}
 
-	@Override
-	public Offer getNextOffer(History history) {
-		return offers[(int)(Math.random()*2)];
-	}
 
 	@Override
-	protected void updateAllocated(Offer update) {
-		// TODO Auto-generated method stub
+	public Offer getNextOffer(History history) 
+	{	
+		//start from where we currently have accepted
+		Offer propose = new Offer(game.getNumIssues());
+		for(int issue = 0; issue < game.getNumIssues(); issue++)
+			propose.setItem(issue,  allocated.getItem(issue));
+
+		ArrayList<Integer> playerPref = utils.getMinimaxOrdering();
+		ArrayList<Integer> vhPref = utils.getVHOrdering();
+		int[] free = new int[game.getNumIssues()];
 		
-	}
-
-	@Override
-	protected Offer getAllocated() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	protected Offer getFinalOffer(History history) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	protected void setUtils(AgentUtilsExtension utils) {
-		// TODO Auto-generated method stub
+		for(int issue = 0; issue < game.getNumIssues(); issue++)
+		{
+			free[issue] = allocated.getItem(issue)[1];
+		}
 		
+		//find top deals
+		int topPlay = -1;
+		int topVH = -1;
+		int max = game.getNumIssues() + 1;
+		for(int i  = 0; i < game.getNumIssues(); i++)
+			if(free[i] > 0 && playerPref.get(i) < max)
+			{
+				topPlay = i;
+				max = playerPref.get(i);
+			}
+		max = game.getNumIssues() + 1;
+		for(int i  = 0; i < game.getNumIssues(); i++)
+			if(free[i] > 0 && vhPref.get(i) < max)
+			{
+				topVH = i;
+				max = vhPref.get(i);
+			}
+		
+
+		if (topPlay == -1 && topVH == -1) //we're already at a full offer, but need to try something different
+		{
+			//just repeat and keep allocated
+		}			
+		else if(topPlay == topVH)//we're wanting the same thing			
+		{
+			if(free[topPlay] >= 2)
+				propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0] + 1, free[topPlay] - 2, allocated.getItem(topPlay)[2] + 1});//split evenly
+			else
+				propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0], free[topPlay] - 1, allocated.getItem(topPlay)[2] + 1});//give give
+		}
+		else
+		{
+			propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0], free[topPlay] - 1, allocated.getItem(topPlay)[2] + 1});
+			propose.setItem(topVH, new int[] {allocated.getItem(topVH)[0] + 1, free[topVH] - 1, allocated.getItem(topVH)[2]});
+		}
+		
+		
+		return propose;
 	}
+	
+	
 
 	@Override
-	protected Offer getTimingOffer(History history) {
-		// TODO Auto-generated method stub
-		return null;
+	protected void updateAllocated (Offer update)
+	{
+		allocated = update;
 	}
-
+	
+	@Override
+	protected Offer getAllocated ()
+	{
+		return allocated;
+	}
+	
+	@Override
+	protected Offer getConceded ()
+	{
+		return allocated;
+	}
 	@Override
 	protected Offer getAcceptOfferFollowup(History history) {
 		// TODO Auto-generated method stub
@@ -87,10 +132,20 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		return null;
 	}
 
+
 	@Override
-	protected Offer getConceded() {
+	protected Offer getFinalOffer(History history) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	protected Offer getTimingOffer(History history) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 
 }

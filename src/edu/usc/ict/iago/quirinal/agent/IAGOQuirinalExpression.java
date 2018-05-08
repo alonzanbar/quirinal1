@@ -35,20 +35,19 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 //		return "";
 		
 	}
-	@Override
-	protected String getSemiFairEmotion() {
-		// TODO Auto-generated method stub
-		return null;
+	protected String getSemiFairEmotion()
+	{
+		return "neutral";
 	}
-	@Override
-	protected String getFairEmotion() {
-		// TODO Auto-generated method stub
-		return null;
+	
+	protected String getFairEmotion()
+	{
+		return "happy";
 	}
-	@Override
-	protected String getUnfairEmotion() {
-		// TODO Auto-generated method stub
-		return null;
+	
+	protected String getUnfairEmotion()
+	{
+		return "sad";
 	}
 
 }

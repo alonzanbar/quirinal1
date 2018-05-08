@@ -288,7 +288,7 @@ public class GameBridge extends HttpServlet  {
 			Class<? extends GameSpec> gsclass = (Class<? extends GameSpec>) Class.forName(allGameSpecNames.get(currentGame));
 			Constructor<? extends GameSpec> ctor = gsclass.getDeclaredConstructor(boolean.class);
 			ctor.setAccessible(true);
-			gs = ctor.newInstance(new Object [] {false});
+			gs = ctor.newInstance(new Object [] {true});
 		} catch (ClassNotFoundException e2) {
 			System.err.println("We were unable to load the primary GameSpec file from the class name provided in the configuration file.");
 			e2.printStackTrace();

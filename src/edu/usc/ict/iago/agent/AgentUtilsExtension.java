@@ -28,7 +28,7 @@ public class AgentUtilsExtension
 		permutations = MathUtils.getPermutations(game.getNumIssues(), 1);//offset by 1, so we will be 1-indexed
 	}
 	
-	protected GameSpec getSpec()
+	public GameSpec getSpec()
 	{
 		return game;
 	}
@@ -94,7 +94,7 @@ public class AgentUtilsExtension
 	 * Returns the normalized ordering of VH preferences (e.g., a point value of {3, 7, 2} would return {2, 1, 3}), with 1 being the highest
 	 * @return an arraylist of preferences
 	 */
-	protected ArrayList<Integer> getVHOrdering() 
+	public ArrayList<Integer> getVHOrdering() 
 	{
 		int rating = 1;
 		ArrayList<Integer> ans = new ArrayList<Integer>(game.getNumIssues());
@@ -301,7 +301,7 @@ public class AgentUtilsExtension
 	 * Finds the ordering among possible orderings that is most different than the VH's ordering, since that means the greatest chance of integrative potential.
 	 * @return the chosen ordering.
 	 */
-	protected ArrayList<Integer> getMinimaxOrdering()
+	public ArrayList<Integer> getMinimaxOrdering()
 	{
 		int valueHeuristic = 0;
 		int max = -1;
