@@ -1,5 +1,7 @@
 package edu.usc.ict.iago.agent;
 
+import java.util.ArrayList;
+
 import edu.usc.ict.iago.utils.BehaviorPolicy;
 import edu.usc.ict.iago.utils.History;
 import edu.usc.ict.iago.utils.Offer;
@@ -70,4 +72,5 @@ public abstract class IAGOCoreBehavior implements BehaviorPolicy
 	 * @return the total summed offer
 	 */
 	protected abstract Offer getConceded();
+
 }

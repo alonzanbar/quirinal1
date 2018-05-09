@@ -9,7 +9,7 @@ public class IAGOPinocchioVH extends IAGOCoreVH {
 	public IAGOPinocchioVH(String name, GameSpec game, Session session)
 	{
 		super("Pinocchio", game, session, new IAGOBuildingBehavior(), new IAGONiceExpression(), 
-				new IAGONiceFreeMessage());	
+				new IAGONiceFreeMessage(),new AgentUtilsExtension());	
 		
 	}
 

@@ -1,7 +1,18 @@
 package edu.usc.ict.iago.quirinal.agent;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.Collections;
 
 import edu.usc.ict.iago.agent.AgentUtilsExtension;
 import edu.usc.ict.iago.utils.Event;
@@ -16,8 +27,12 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 {
 	private GameSpec game;
 	private ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();
+	private LinkedHashMap<ArrayList<Integer>,Integer> orderMLE = new LinkedHashMap<ArrayList<Integer>,Integer>();
 	private int[][] permutations;
-	private LinkedList<Preference> preferences = new LinkedList<Preference>();
+	private LinkedHashSet<Preference> preferences = new LinkedHashSet<Preference>();
+	private ArrayList<Integer> HVuitility= null;
+	private ArrayList<Integer> playeruitility= null;
+	private ArrayList<ArrayList<Integer>> offers = new ArrayList<ArrayList<Integer>>();
 	
 	/**
 	 * Configures initial parameters for the given game.
@@ -27,6 +42,29 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	{
 		this.game = game;
 		permutations = MathUtils.getPermutations(game.getNumIssues(), 1);//offset by 1, so we will be 1-indexed
+		orderings = new ArrayList<ArrayList<Integer>>();
+		orderMLE = new LinkedHashMap<ArrayList<Integer>,Integer>();
+		preferences = new LinkedHashSet<Preference>();
+		for (int i = 0; i < permutations.length; i++)
+		{
+			ArrayList<Integer> a = new ArrayList<Integer>();
+			for (int j = 0; j < permutations[i].length; j++)
+			{
+				a.add(permutations[i][j]);
+			}
+			orderings.add(a);
+			orderMLE.put(a, 0);
+		}
+		
+		HVuitility = new ArrayList<Integer>(game.getNumIssues());
+		
+		playeruitility = new ArrayList<Integer>(game.getNumIssues());
+		for (int j = 0; j < game.getNumIssues(); j++)
+		{
+			playeruitility.add(0);
+			HVuitility.add(j, game.getSimpleVHPoints().get(game.getIssuePluralNames()[j])) ;
+		}
+		
 	}
 	
 	public GameSpec getSpec()
@@ -41,7 +79,11 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	 */
 	protected void addPref (Preference p)
 	{
-		preferences.add(p);
+		if (!preferences.contains(p))
+		{
+			preferences.add(p);
+			adjustPlayerUtilityByPref(p);
+		}
 	}
 	
 	/**
@@ -50,7 +92,9 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	 */
 	protected Preference dequeuePref()
 	{
-		return preferences.remove(0);
+		Preference p =  preferences.iterator().next();
+		preferences.remove(p);
+		return p;
 	}
 	
 	/**
@@ -66,6 +110,44 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	}
 	
 	/**
+	 * Returns the player value of an ordering. not available at run time 
+	 * @param o the ordering
+	 * @return the total value
+	 */
+	protected ArrayList<Integer> getPlayerActualUtility() {
+		ArrayList<Integer> playerActualUtility =  new ArrayList<Integer>(game.getNumIssues());
+		for (int j = 0; j < game.getNumIssues(); j++)
+		{
+			playerActualUtility.add(j, game.getSimplePlayerPoints().get(game.getIssuePluralNames()[j])) ;
+		}
+		return playerActualUtility;
+	}
+	
+	protected List<ArrayList<Integer>> getTopOrderings()
+	{
+		orderMLE = MapUtil.sortByValue(orderMLE);
+		ArrayList<ArrayList<Integer>> offers = new ArrayList<ArrayList<Integer>>();
+		Set<Entry<ArrayList<Integer>, Integer>> entryset = orderMLE.entrySet();
+		Integer topvalue  = -1;
+		Iterator<Entry<ArrayList<Integer>, Integer>>itr = entryset.iterator();
+		while(itr.hasNext() ){
+			Entry<ArrayList<Integer>,Integer> e= itr.next();
+			if (e.getValue().equals(topvalue) || topvalue==-1) {
+				offers.add(e.getKey());
+				topvalue = e.getValue();
+			}
+			else {
+				break;
+			}
+			
+		}
+		
+		return offers;
+		
+	}
+	
+	
+	/**
 	 * Returns the VH value of an ordering.
 	 * @param o the ordering
 	 * @return the total value
@@ -77,17 +159,6 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 		return ans;
 	}
 	
-	/**
-	 * Returns the player value of an ordering. not available at run time 
-	 * @param o the ordering
-	 * @return the total value
-	 */
-	protected int playerActualOrderValue(ArrayList<Integer> o) {
-		int ans = 0;
-		for (int num = 0; num < game.getNumIssues(); num++)
-			ans += o.get(num) * game.getSimplePlayerPoints().get(game.getIssuePluralNames()[num]);
-		return ans;
-	}
 	
 	/**
 	 * Check to see if the offer is a full offer.
@@ -109,6 +180,10 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	 */
 	public ArrayList<Integer> getVHOrdering() 
 	{
+		return getOrder(HVuitility);
+	}
+
+	private ArrayList<Integer> getOrder(ArrayList<Integer> utility) {
 		int rating = 1;
 		ArrayList<Integer> ans = new ArrayList<Integer>(game.getNumIssues());
 		ArrayList<Integer> sortedIndices = new ArrayList<Integer>(game.getNumIssues());
@@ -117,12 +192,12 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 		
 		for (int i = 0; i < game.getNumIssues(); i++)
 		{
-			int max = 0;
+			int max = Integer.MIN_VALUE;
 			int value = 0;
 			int index = 0;
 			for (int j = 0; j < game.getNumIssues(); j++)
 			{
-				value = game.getSimpleVHPoints().get(game.getIssuePluralNames()[j]);
+				value = utility.get(j);
 				if (value > max && !sortedIndices.contains(j))
 				{
 					max = value;
@@ -216,97 +291,76 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	 * Eliminates invalid orderings by looking at preferences, the oldest ones first.
 	 * @return true if there are no valid orderings, false otherwise
 	 */
-	protected boolean reconcileContradictions()
+	protected boolean adjustPlayerUtilityByPref(Preference pref)
 	{
-		orderings = new ArrayList<ArrayList<Integer>>();
-		for (int i = 0; i < permutations.length; i++)
+		
+		ServletUtils.log(pref.toString(), ServletUtils.DebugLevels.DEBUG);
+		Relation r = pref.getRelation();
+		if(r == Relation.BEST)
 		{
-			ArrayList<Integer> a = new ArrayList<Integer>();
-			for (int j = 0; j < permutations[i].length; j++)
+			//kludge when vague information is supplied
+			if (pref.getIssue1() == -1)//if information not filled in
+				return false;
+			for (int x = 0; x < orderings.size(); x++)
 			{
-				a.add(permutations[i][j]);
+				ArrayList<Integer> o = orderings.get(x);
+				if(o.get(pref.getIssue1()) == 1)//if the ordering does not have the item as number 1 
+					orderMLE.put(o, orderMLE.get(o)+1);
 			}
-			orderings.add(a);
+		}
+		else if(r == Relation.WORST)
+		{
+			//kludge when vague information is supplied
+			if (pref.getIssue1() == -1)//if information not filled in
+				return false;
+			for (int x = 0; x < orderings.size(); x++)
+			{
+				ArrayList<Integer> o = orderings.get(x);
+				if(o.get(pref.getIssue1()) == game.getNumIssues())//if the ordering does not have the item as the last place 
+					orderMLE.put(o, orderMLE.get(o)+1);
+			}
+		}
+		else if(r == Relation.GREATER_THAN)
+		{
+			//kludge when vague information is supplied
+			if (pref.getIssue1() == -1 || pref.getIssue2() == -1)//if information not filled in
+				return false;
+			for (int x = 0; x < orderings.size(); x++)
+			{
+				ArrayList<Integer> o = orderings.get(x);
+				if(o.get(pref.getIssue2()) > o.get(pref.getIssue1()))//if the ordering does not have the item greater
+					orderMLE.put(o, orderMLE.get(o)+1);
+			}
+		}
+		else if(r == Relation.LESS_THAN)
+		{
+			//kludge when vague information is supplied
+			if (pref.getIssue1() == -1 || pref.getIssue2() == -1)//if information not filled in
+				return false;
+			for (int x = 0; x < orderings.size(); x++)
+			{
+				ArrayList<Integer> o = orderings.get(x);
+				if(o.get(pref.getIssue2()) < o.get(pref.getIssue1()))//if the ordering does not have the item lesser 
+					orderMLE.put(o, orderMLE.get(o)+1);
+			}
+		}
+		else if(r == Relation.EQUAL)
+		{
+			//kludge when vague information is supplied
+			if (pref.getIssue1() == -1 || pref.getIssue2() == -1)//if information not filled in
+				
+			for (int x = 0; x < orderings.size(); x++)
+			{
+				ArrayList<Integer> o = orderings.get(x);
+				if(Math.abs(o.get(pref.getIssue1()) - o.get(pref.getIssue2())) == 0)//if the ordering does not have the items adjacent 
+					orderMLE.put(o, orderMLE.get(o)+1);
+			}
 		}
 		
-		for (Preference pref: preferences)
-		{
-			ServletUtils.log(pref.toString(), ServletUtils.DebugLevels.DEBUG);
-			Relation r = pref.getRelation();
-			ArrayList<ArrayList<Integer>> toRemove = new ArrayList<ArrayList<Integer>>();
-			if(r == Relation.BEST)
-			{
-				//kludge when vague information is supplied
-				if (pref.getIssue1() == -1)//if information not filled in
-					continue;
-				for (int x = 0; x < orderings.size(); x++)
-				{
-					ArrayList<Integer> o = orderings.get(x);
-					if(o.get(pref.getIssue1()) != 1)//if the ordering does not have the item as number 1 
-						toRemove.add(o);
-				}
-			}
-			else if(r == Relation.WORST)
-			{
-				//kludge when vague information is supplied
-				if (pref.getIssue1() == -1)//if information not filled in
-					continue;
-				for (int x = 0; x < orderings.size(); x++)
-				{
-					ArrayList<Integer> o = orderings.get(x);
-					if(o.get(pref.getIssue1()) != game.getNumIssues())//if the ordering does not have the item as the last place 
-						toRemove.add(o);
-				}
-			}
-			else if(r == Relation.GREATER_THAN)
-			{
-				//kludge when vague information is supplied
-				if (pref.getIssue1() == -1 || pref.getIssue2() == -1)//if information not filled in
-					continue;
-				for (int x = 0; x < orderings.size(); x++)
-				{
-					ArrayList<Integer> o = orderings.get(x);
-					if(o.get(pref.getIssue1()) > o.get(pref.getIssue2()))//if the ordering does not have the item greater
-						toRemove.add(o);
-				}
-			}
-			else if(r == Relation.LESS_THAN)
-			{
-				//kludge when vague information is supplied
-				if (pref.getIssue1() == -1 || pref.getIssue2() == -1)//if information not filled in
-					continue;
-				for (int x = 0; x < orderings.size(); x++)
-				{
-					ArrayList<Integer> o = orderings.get(x);
-					if(o.get(pref.getIssue1()) < o.get(pref.getIssue2()))//if the ordering does not have the item lesser 
-						toRemove.add(o);
-				}
-			}
-			else if(r == Relation.EQUAL)
-			{
-				//kludge when vague information is supplied
-				if (pref.getIssue1() == -1 || pref.getIssue2() == -1)//if information not filled in
-					continue;
-				for (int x = 0; x < orderings.size(); x++)
-				{
-					ArrayList<Integer> o = orderings.get(x);
-					if(Math.abs(o.get(pref.getIssue1()) - o.get(pref.getIssue2())) == 1)//if the ordering does not have the items adjacent 
-						toRemove.add(o);
-				}
-			}
-			
-			for(ArrayList<Integer> al : toRemove)
-				orderings.remove(al);
-			
-			ServletUtils.log(orderings.toString(), ServletUtils.DebugLevels.DEBUG);
-		}
+		orderMLE = MapUtil.sortByValue(orderMLE);
+		
 		ServletUtils.log(orderings.toString(), ServletUtils.DebugLevels.DEBUG);
-		
-		if(orderings.size() == 0)
-		{
-			return true;
-		}
-		return false;
+		return true;
 	}
 	
 	
@@ -320,8 +374,7 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 		int max = -1;
 		ArrayList<Integer> ans = null;
 		//just in case this hasn't been run yet
-		reconcileContradictions();
-		for(ArrayList<Integer> order: orderings)
+		for(ArrayList<Integer> order: getTopOrderings())
 		{
 			for (int i = 0; i < order.size(); i++)
 			{
@@ -337,4 +390,23 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension
 	}
 	
 	
+	}
+
+class MapUtil {
+    public static <K, V extends Comparable<? super V>> LinkedHashMap<K, V> sortByValue(Map<K, V> map) {
+        List<Entry<K, V>> list = new ArrayList<>(map.entrySet());
+        list.sort(Entry.comparingByValue());
+        Collections.reverse(list);
+
+        LinkedHashMap<K, V> result = new LinkedHashMap<>();
+        for (Entry<K, V> entry : list) {
+            result.put(entry.getKey(), entry.getValue());
+        }
+
+        return result;
+    }
+	
+	
 }
+
+

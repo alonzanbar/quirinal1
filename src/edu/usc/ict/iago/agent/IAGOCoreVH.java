@@ -28,12 +28,12 @@ public abstract class IAGOCoreVH extends GeneralVH
 	private boolean firstGame = true;
 	
 	public IAGOCoreVH(String name, GameSpec game, Session session, IAGOCoreBehavior behavior,
-			IAGOCoreExpression expression, IAGOCoreMessage messages)
+			IAGOCoreExpression expression, IAGOCoreMessage messages,AgentUtilsExtension aue )
 	{
 		super(name, game, session);
 		
-		AgentUtilsExtension aue = new AgentUtilsExtension();
 		aue.configureGame(game);
+		
 		this.utils = aue;
 		this.expression = expression;
 		this.messages = messages;
@@ -59,9 +59,9 @@ public abstract class IAGOCoreVH extends GeneralVH
 		if(e.getType().equals(Event.EventClass.GAME_START)) 
 		{		
 			ServletUtils.log("Game has changed... reconfiguring!", ServletUtils.DebugLevels.DEBUG);
-			AgentUtilsExtension aue = new AgentUtilsExtension();
-			aue.configureGame(game);
-			this.utils = aue;
+			//AgentUtilsExtension aue = new AgentUtilsExtension();
+			utils.configureGame(game);
+			//this.utils = aue;
 			this.messages.setUtils(utils);
 			this.behavior.setUtils(utils);		
 			
@@ -278,25 +278,6 @@ public abstract class IAGOCoreVH extends GeneralVH
 			if (p != null && !p.isQuery()) //a preference was expressed
 			{
 				utils.addPref(p);
-				if(utils.reconcileContradictions())
-				{
-					//we simply drop the oldest expressed preference until we are reconciled.  This is not the best method, as it may not be the the most efficient route.
-					LinkedList<String> dropped = new LinkedList<String>();
-					dropped.add(IAGOCoreMessage.prefToEnglish(utils.dequeuePref(), game));
-					while(utils.reconcileContradictions())
-						dropped.add(IAGOCoreMessage.prefToEnglish(utils.dequeuePref(), game));
-					
-					String drop = "";
-					for (String s: dropped)
-						drop += "\"" + s + "\", and ";
-					
-					drop = drop.substring(0, drop.length() - 6);//remove last 'and'
-					
-					Event e1 = new Event(History.VH_ID, Event.EventClass.SEND_MESSAGE, 
-							messages.getContradictionResponse(drop), 2000);
-					//history.updateHistory(e1);
-					resp.add(e1);
-				}
 			}
 			
 			Event e0 = new Event(History.VH_ID, Event.EventClass.SEND_EXPRESSION, expression.getExpression(getHistory()), 2000, 1000);

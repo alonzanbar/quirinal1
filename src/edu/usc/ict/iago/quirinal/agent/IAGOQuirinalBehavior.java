@@ -88,8 +88,6 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		
 		return propose;
 	}
-	
-	
 
 	@Override
 	protected void updateAllocated (Offer update)

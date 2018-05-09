@@ -17,6 +17,7 @@ public class AgentUtilsExtension
 	private ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();
 	private int[][] permutations;
 	private LinkedList<Preference> preferences = new LinkedList<Preference>();
+	private ArrayList<ArrayList<Integer>> offers = new ArrayList<ArrayList<Integer>>();
 	
 	/**
 	 * Configures initial parameters for the given game.
@@ -42,6 +43,8 @@ public class AgentUtilsExtension
 	{
 		preferences.add(p);
 	}
+	
+	
 	
 	/**
 	 * Removes the 0th element in the preferences queue.
@@ -75,6 +78,8 @@ public class AgentUtilsExtension
 			ans += o.get(num) * game.getSimpleVHPoints().get(game.getIssuePluralNames()[num]);
 		return ans;
 	}
+	
+	
 	
 	/**
 	 * Check to see if the offer is a full offer.
