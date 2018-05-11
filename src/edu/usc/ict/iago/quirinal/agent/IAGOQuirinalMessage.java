@@ -16,7 +16,7 @@ import edu.usc.ict.iago.utils.ServletUtils;
 
 
 public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolicy {
-	protected final String[] proposal = {"I think this deal is acceptable.", 
+		protected final String[] proposal = {"I think this deal is acceptable.", 
 						 			   "I think you'll find this offer to be satisfactory.", 
 						 			   "Check out this arrangement. I see it fair.", 
 						 			   "I think this deal will interest you.",
@@ -49,10 +49,17 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 			 "You know what you are doing. I'm in."};
 	
 	protected final String[] messageResponse = {"Hmmm", "Well...","Huh?", "I'm not quite sure how to treat this piece of information", "My responses are unambiguous. You just need to ask the right questions."};
+	protected final String[] disclosureResponse = {"I understand your will to negotiate, but why won't you tell me something about your preferences first?",
+													"Before I answer, elaborate a bit about yourself.",
+													"Umm. I'm not sure that answering that will help us reach an agreement.",
+													"Don't worry, as time develops you'll get your answer.",
+													"Speaking of our preferences, Why don't you tell me one of your own?"};
 	
 	private AgentUtilsExtension utils;
 	private ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();
-	private int timeCounter = 0, positive = 0, negative = 0; //Count time, negative and positive feedback from player
+	private int positive = 0, negative = 0; //Count negative and positive feedback from player
+	private final int disclosure = 3; // level of disclosure (in 1 of "disclosure" times the agent will tell information).
+	private boolean inHurry = false;
 	@Override
 	protected void setUtils(AgentUtilsExtension utils)
 	{
@@ -167,7 +174,10 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 					return "Let's make some progress. Do you have any questions or offers? Would you mind telling me your favorite items?"
 							+ " Or some of your preferences?";
 				else if (this.getTime(history, game)/60 < 2)//else if (time != -1 && min <2)
+				{
+					inHurry = true;
 					return "We are running out of time! Let's find a deal quickly.";
+				}
 			
 		}
 		Preference p = ePrime.getPreference();
@@ -202,7 +212,10 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 					myRelation = Relation.LESS_THAN;
 				else
 					myRelation = Relation.EQUAL;
-				return prefToEnglish(new Preference(p.getIssue1(), p.getIssue2(), myRelation, false), game);
+				if (1 == (int)(Math.random() * disclosure))
+					return prefToEnglish(new Preference(p.getIssue1(), p.getIssue2(), myRelation, false), game);
+				else
+					return disclosureResponse[(int)(Math.random()*disclosureResponse.length)];
 
 			}
 		}
@@ -218,9 +231,16 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 		switch(code)
 		{
 			case 0:
-				resp = "I couldn't agree more. We should be happy with our deal.";
+				positive++;
+				if (positive >= negative)
+					resp = "I couldn't agree more. We should be happy with our deal.";
+				else
+					resp = "The only way we'll be happy is if we close this deal.";
+				if (inHurry)
+					resp += " The thing is, we barely got time left!";
 				break;
 			case 1:
+				negative++;
 				if(playerOfferCount <= 1)
 					resp = "You still haven't made many offers. Don't be afraid to suggest some!";
 				else
@@ -248,49 +268,74 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 							resp = "Thanks. What item would you most like in return?";
 					}
 					else
-						resp = "I truly appreciate the effort, but it's not the offer I was expecting.";
+						if (positive >= negative)
+							resp = "I truly appreciate the effort, mate. But it's not the offer I was expecting.";
+						else
+							resp = "I'm sure you can try a little harder.";
 					
 				}
 				if (!isFull)
 					resp += "  By the way, What about the rest of the items you left undecided?";
 				break;
 			case 2:
-				resp = "You are right, but splitting all items evenly is not everything. We should find an evenly fair deal for both of us.";
+				positive++;
+				if (positive >= negative)
+					resp = "You are right, but splitting all items evenly is not everything. We should find an evenly fair deal for both of us.";
+				else
+					resp = "I agree.";
 				break;
 			case 3:
+				positive++;
 				if(best < 0)//we do not have any guess to their favorite
 					resp = "I like your idea. What's your favorite item?";
 				else
 					resp = "True. Yours is " + game.getIssuePluralNames()[best] + ", right?";
 				break;
 			case 4:
-				if(playerOfferCount <= 3)
-					resp = "You really haven't made much offers. You can't threathen while you don't leave me any other options!";
-				else
-					resp = "I don't like that tone, but let me consider your offer.";
-				if (!isFull)
+				negative++;
+				if (positive >= negative) {
+					if(playerOfferCount <= 3)
+						resp = "I'm sorry, I would love to accept your deal, but you didn't make that many offers.";
+					else
+						resp = "No need to be angry, please let me revise your offer before that!";
+				}
+				else 
+					if(playerOfferCount <= 3)
+						resp = "You really haven't made much offers. You can't threathen while you don't leave me any other options!";
+					else
+						resp = "Your tone is unacceptable, but let me consider your offer.";
+					if (!isFull)
 					resp += " What about the rest of the items in the middle?";
 				break;
 			case 5:
-				resp = "I understand. Let me think about that a little before we jump into consequences.";
+				negative++;
+				if (positive >= negative)	
+					resp = "I understand. Let me think about that a little before we jump into consequences.";
+				else
+					resp = "I don't buy it. Quit playing games and let's truly negotiate.";
+				if (inHurry)
+					resp += " I see we don't have much time left.";
 				//player threat to shut down negotiations. need to know offer and playerbehavior policy to see if agent
 				//should invoke a new offer, accept offer or break negotiations.
 				break;
 			case 6:
-				if (offerCount > 0)
-				{
-					int avgPlayerValue = (Math.abs(utils.opponentValueMax(lastOffer.getOffer()) - utils.opponentValueMin(lastOffer.getOffer())))/2;
-					if (Math.abs(utils.myActualOfferValue(lastOffer.getOffer()) - avgPlayerValue) > game.getNumIssues() * 2)//fair is defined as within one of the most valuable items away from each other
+				negative++;
+					if (offerCount > 0)
 					{
-						resp = "Umm. I actually think we can come up with a better deal. One that is more even split.";
-						if (best >= 0)
-							resp += "  Isn't it true that you like " + game.getIssuePluralNames()[best] + " best?";
-						if (worst >= 0)
-							resp += " What about " + game.getIssuePluralNames()[worst] + ", you like that the least, right?";
-					}
-					else
-						resp = "Alright, I understand. It does seem like a fair deal.";
-					
+						int avgPlayerValue = (Math.abs(utils.opponentValueMax(lastOffer.getOffer()) - utils.opponentValueMin(lastOffer.getOffer())))/2;
+						if (Math.abs(utils.myActualOfferValue(lastOffer.getOffer()) - avgPlayerValue) > game.getNumIssues() * 2)//fair is defined as within one of the most valuable items away from each other
+						{
+							if (positive >= negative+2) 
+								resp = "Umm. I actually think we can come up with a better deal. One that is more even split.";
+							else 
+								resp = "Well, is it?";
+							if (best >= 0)
+								resp += "  Isn't it true that you like " + game.getIssuePluralNames()[best] + " best?";
+							if (worst >= 0)
+								resp += " What about " + game.getIssuePluralNames()[worst] + ", you like that the least, right?";
+						}
+						else
+							resp = "Alright, I understand. It does seem like a fair deal.";
 				}
 				else
 					resp = "What offer?  I don't think I've gotten any offers yet...";
@@ -300,19 +345,29 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				//player says this is the best offer. need to know profit policy to accept offer or ask to change it.
 				break;
 			case 7:
+				negative++;
 				//might mean that player's profit is too low - can help telling favorite items of player
-				resp = "In that case, why won't you suggest your own offer?";
+				if (positive >= negative+2) 
+					resp = "I'm sorry you feel that. Why won't you suggest your own offer instead?";
+				else 
+					resp = "In that case, are you going to offer a new deal, or just keep talking?";
+				if (inHurry)
+					resp += " We are running out of time.";
 				break;
 			case 8:
+				positive++;
+				if (positive >= negative) 
+					resp = "I understand you completely, but in order for us to succeed, please tell me something more about your preference.";
+				else
+					resp = "That's correct. Just keep in mind that there are two ends to this deal.";
+				break;
+			case 9:
+				negative++;
 				int suggest = best >= 0 ? best : (int)(Math.random() * game.getNumIssues());
-				String yourBest = game.getIssuePluralNames()[suggest];
 				resp = "I understand you have your own requirements, but if I give you some "+ game.getIssuePluralNames()[suggest]
 						+ ", what can you bring me in return?";
 				if (!isFull)
 					resp += " Also, what about the rest of the undecided items?";
-			case 9:
-				resp = "I understand you completely, but in order for us to succeed, please tell me something more about your preference.";
-				break;
 			case 10:
 				int time = getTime(history,game);
 				int min = time / 60;
@@ -320,7 +375,10 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				
 				resp = "Right now there is " + min + " minute" + (min == 1 ? "" : "s") + " and " + sec + " seconds remaining.";
 				if (min > 0) {
-					resp += "  Don't worry.  We've still got a bit more time to negotiate.";
+					if (positive >= negative)
+						resp += "  Don't worry.  We've still got a bit more time to negotiate.";
+					else
+						resp += " Nah, we're fine.";
 				if (min < 3)
 					resp += " We just need to be decisive.";
 					}
@@ -336,7 +394,10 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				}
 				break;
 			case 11:
-				resp = "No problem. How about this offer?";
+				negative++;
+				resp = "No problem. Let's see if I can come up with something.";
+				if (inHurry)
+					resp += " Just watch the time - it might be the last chance we get!";
 				break;
 			case 100:
 				resp = this.getRejectLang(history, game);
@@ -373,7 +434,7 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 	@Override
 	protected String getContradictionResponse(String drop) {
 		// TODO Auto-generated method stub
-		return "Wait a second. I remember you said earlier:" + drop + " Was that not true?";
+		return "Wait a second. I remember you said earlier:" + drop + "Was that not true?";
 	}
 
 	private int findBest()
