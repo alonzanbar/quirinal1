@@ -3,6 +3,8 @@ package edu.usc.ict.iago.quirinal.agent;
 import java.util.ArrayList;
 import java.util.Map;
 
+import edu.usc.ict.iago.agent.AgentUtilsExtension;
+import edu.usc.ict.iago.agent.IAGOCoreMessage;
 import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.History;

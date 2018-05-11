@@ -2,6 +2,7 @@ package edu.usc.ict.iago.agent;
 
 import java.util.ArrayList;
 import edu.usc.ict.iago.utils.BehaviorPolicy;
+import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.History;
 import edu.usc.ict.iago.utils.Offer;
@@ -70,7 +71,7 @@ public class IAGOBuildingBehavior extends IAGOCoreBehavior implements BehaviorPo
 		for(int issue = 0; issue < game.getNumIssues(); issue++)
 			propose.setItem(issue,  allocated.getItem(issue));
 
-		ArrayList<Integer> playerPref = utils.getMinimaxOrdering();
+		ArrayList<Integer> playerPref = this.getOpponentOrder();
 		ArrayList<Integer> vhPref = utils.getVHOrdering();
 		int[] free = new int[game.getNumIssues()];
 		
@@ -144,7 +145,15 @@ public class IAGOBuildingBehavior extends IAGOCoreBehavior implements BehaviorPo
 		return null;
 	}
 
-	
-	
+	@Override
+	public ArrayList<Integer> getOpponentOrder() {
+		// TODO Auto-generated method stub
+		return utils.getMinimaxOrdering();
+	}
+
+	@Override
+	public void update(Event event) {
+		return; // do nothing	
+	}
 
 }

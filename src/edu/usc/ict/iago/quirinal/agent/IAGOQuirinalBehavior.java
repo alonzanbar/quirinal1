@@ -1,13 +1,11 @@
 package edu.usc.ict.iago.quirinal.agent;
 
-
-
-
 import java.util.ArrayList;
 
 import edu.usc.ict.iago.agent.AgentUtilsExtension;
 import edu.usc.ict.iago.agent.IAGOCoreBehavior;
 import edu.usc.ict.iago.utils.BehaviorPolicy;
+import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.History;
 import edu.usc.ict.iago.utils.Offer;
@@ -15,6 +13,7 @@ import edu.usc.ict.iago.utils.Offer;
 public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPolicy {
 	
 	private AgentUtilsExtension utils;
+	private OpponentModel opponentModel;
 	private GameSpec game;	
 	private Offer allocated;
 		
@@ -29,6 +28,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 			int[] init = {0, game.getIssueQuants()[i], 0};
 			allocated.setItem(i, init);
 		}
+		opponentModel = new HeuristicOpponentModel(game);
 	}
 
 
@@ -39,8 +39,8 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		Offer propose = new Offer(game.getNumIssues());
 		for(int issue = 0; issue < game.getNumIssues(); issue++)
 			propose.setItem(issue,  allocated.getItem(issue));
-
-		ArrayList<Integer> playerPref = utils.getMinimaxOrdering();
+		Ordering playerPref = opponentModel.getTopOrderings(1).get(0);
+		
 		ArrayList<Integer> vhPref = utils.getVHOrdering();
 		int[] free = new int[game.getNumIssues()];
 		
@@ -88,6 +88,38 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		
 		return propose;
 	}
+	
+	
+	@Override
+	public ArrayList<Integer> getOpponentOrder() {
+		return opponentModel.getTopOrderings(1).get(0).issues;
+	}	
+	
+//	/**
+//	 * https://github.com/deeplearning4j/nd4j
+//	 * @param a
+//	 * @param ascending
+//	 * @return
+//	 */
+//    public static int[] argsort(final double[] doubles, final boolean ascending) {
+//        Integer[] indexes = new Integer[doubles.length];
+//        for (int i = 0; i < indexes.length; i++) {
+//            indexes[i] = i;
+//        }
+//        Arrays.sort(indexes, new Comparator<Integer>() {
+//            @Override
+//            public int compare(final Integer i1, final Integer i2) {
+//                return (ascending ? 1 : -1) * Double.compare(doubles[i1], doubles[i2]);
+//            }
+//        });
+//
+//        int[] ret = new int[indexes.length];
+//        for(int i = 0; i  < ret.length; i++)
+//            ret[i] = indexes[i];
+//
+//        return ret;
+//    }
+
 
 	@Override
 	protected void updateAllocated (Offer update)
@@ -142,6 +174,12 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 	protected Offer getTimingOffer(History history) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+
+	@Override
+	public void update(Event event) {
+		opponentModel.update(event);		
 	}
 
 

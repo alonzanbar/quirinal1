@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-build.xml
-.classpath
+/build/
+/.settings/
 .project
-.settings
-build
-
-=======
-.settings 
 .classpath
-.project
->>>>>>> 381db5ee4f4aadeb89b8ebd86310d31417599cf1

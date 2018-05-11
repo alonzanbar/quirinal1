@@ -41,7 +41,7 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 		} 
 		*/
 		else if (lastEvent.getType().equals(Event.EventClass.SEND_MESSAGE)){
-			if(last.getMessageCode() > -1) {
+			if(lastEvent.getMessageCode() > -1) {
 				switch(lastEvent.getMessageCode()) {
 					case 0://important both happy
 						return "happy";

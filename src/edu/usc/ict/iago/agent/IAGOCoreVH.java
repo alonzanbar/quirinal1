@@ -1,9 +1,14 @@
 package edu.usc.ict.iago.agent;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import javax.websocket.Session;
 
+import edu.usc.ict.iago.quirinal.agent.AgentQuirinaUtilsExtension;
+import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalBehavior;
+import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalExpression;
+import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalMessage;
 import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.GeneralVH;
@@ -43,12 +48,12 @@ public abstract class IAGOCoreVH extends GeneralVH
 		this.behavior.setUtils(utils);
 		
 	}
-	
+
 	@Override
 	public LinkedList<Event> updateHistory(Event e)
 	{
 		LinkedList<Event> resp = new LinkedList<Event>();
-		
+		behavior.update(e);
 		/**what to do when the game has changed -- this is only necessary because our AUE needs to be updated.
 			Game, the current GameSpec from our superclass has been automagically changed!
 			IMPORTANT: between GAME_END and GAME_START, the gameSpec stored in the superclass is undefined.
@@ -198,9 +203,10 @@ public abstract class IAGOCoreVH extends GeneralVH
 		//what to do when the player sends an offer
 		if(e.getType().equals(Event.EventClass.SEND_OFFER))
 		{
+			ArrayList<Integer> playerOrder = behavior.getOpponentOrder();	
 			ServletUtils.log("Agent Normalized ordering: " + utils.getVHOrdering(), ServletUtils.DebugLevels.DEBUG);
-			ServletUtils.log("Optimal ordering: " + utils.getMinimaxOrdering(), ServletUtils.DebugLevels.DEBUG);
-						
+			ServletUtils.log("Optimal ordering: " + playerOrder, ServletUtils.DebugLevels.DEBUG);
+	
 			Offer o = e.getOffer();//incoming offer
 			this.lastOfferReceived = o;
 			
@@ -209,16 +215,21 @@ public abstract class IAGOCoreVH extends GeneralVH
 			
 			Offer allocated = behavior.getAllocated();//what we've already agreed on
 			Offer conceded = behavior.getConceded();//what the agent has agreed on internally
-			ServletUtils.log("Allocated Agent Value: " + utils.myActualOfferValue(allocated), ServletUtils.DebugLevels.DEBUG);
-			ServletUtils.log("Conceded Agent Value: " + utils.myActualOfferValue(conceded), ServletUtils.DebugLevels.DEBUG);
-			ServletUtils.log("Offered Agent Value: " + utils.myActualOfferValue(o), ServletUtils.DebugLevels.DEBUG);
-			ServletUtils.log("Player Difference: " + (utils.opponentValue(o, utils.getMinimaxOrdering()) - utils.opponentValue(allocated, utils.getMinimaxOrdering())), ServletUtils.DebugLevels.DEBUG);
+			int myOfferValue = utils.myActualOfferValue(o);
+			int myAllocatedValue = utils.myActualOfferValue(allocated);			
+			int opponentOfferValue = utils.opponentValue(o, playerOrder);
+			int opponentAllocatedValue = utils.opponentValue(allocated, playerOrder);
 			
-			if(utils.myActualOfferValue(o) > utils.myActualOfferValue(allocated))//net positive
-				if(utils.myActualOfferValue(o) - utils.myActualOfferValue(allocated) + behavior.getAcceptMargin() > utils.opponentValue(o, utils.getMinimaxOrdering()) - utils.opponentValue(allocated, utils.getMinimaxOrdering()))
+			ServletUtils.log("Allocated Agent Value: " + myAllocatedValue, ServletUtils.DebugLevels.DEBUG);
+			ServletUtils.log("Conceded Agent Value: " + utils.myActualOfferValue(conceded), ServletUtils.DebugLevels.DEBUG);
+			ServletUtils.log("Offered Agent Value: " + myOfferValue, ServletUtils.DebugLevels.DEBUG);
+			ServletUtils.log("Player Difference: " + (opponentOfferValue - opponentAllocatedValue), ServletUtils.DebugLevels.DEBUG);
+			
+			if(myOfferValue > myAllocatedValue)//net positive
+				if(myOfferValue - myAllocatedValue + behavior.getAcceptMargin() > opponentOfferValue - opponentAllocatedValue)
 					localFair = true;//offer improvement is within one max value item of the same for me and my opponent
 			
-			if(utils.myActualOfferValue(o) + behavior.getAcceptMargin() > utils.opponentValue(o, utils.getMinimaxOrdering()))
+			if(myOfferValue + behavior.getAcceptMargin() > opponentOfferValue)
 				totalFair = true;//total offer still fair
 			
 			if (localFair && !totalFair)
@@ -278,6 +289,25 @@ public abstract class IAGOCoreVH extends GeneralVH
 			if (p != null && !p.isQuery()) //a preference was expressed
 			{
 				utils.addPref(p);
+				if(utils.reconcileContradictions())
+				{
+					//we simply drop the oldest expressed preference until we are reconciled.  This is not the best method, as it may not be the the most efficient route.
+					LinkedList<String> dropped = new LinkedList<String>();
+					dropped.add(IAGOCoreMessage.prefToEnglish(utils.dequeuePref(), game));
+					while(utils.reconcileContradictions())
+						dropped.add(IAGOCoreMessage.prefToEnglish(utils.dequeuePref(), game));
+					
+					String drop = "";
+					for (String s: dropped)
+						drop += "\"" + s + "\", and ";
+					
+					drop = drop.substring(0, drop.length() - 6);//remove last 'and'
+					
+					Event e1 = new Event(History.VH_ID, Event.EventClass.SEND_MESSAGE, 
+							messages.getContradictionResponse(drop), 2000);
+					//history.updateHistory(e1);
+					resp.add(e1);
+				}
 			}
 			
 			Event e0 = new Event(History.VH_ID, Event.EventClass.SEND_EXPRESSION, expression.getExpression(getHistory()), 2000, 1000);

@@ -1,6 +1,7 @@
 package edu.usc.ict.iago.agent;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
 import edu.usc.ict.iago.utils.Event;
@@ -13,11 +14,11 @@ import edu.usc.ict.iago.utils.Preference.Relation;
 
 public class AgentUtilsExtension 
 {
-	private GameSpec game;
-	private ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();
-	private int[][] permutations;
-	private LinkedList<Preference> preferences = new LinkedList<Preference>();
-	private ArrayList<ArrayList<Integer>> offers = new ArrayList<ArrayList<Integer>>();
+	protected GameSpec game;
+	protected ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();
+	protected int[][] permutations;
+	protected LinkedList<Preference> preferences = new LinkedList<Preference>();
+	protected ArrayList<ArrayList<Integer>> offers = new ArrayList<ArrayList<Integer>>();
 	
 	/**
 	 * Configures initial parameters for the given game.
@@ -27,6 +28,8 @@ public class AgentUtilsExtension
 	{
 		this.game = game;
 		permutations = MathUtils.getPermutations(game.getNumIssues(), 1);//offset by 1, so we will be 1-indexed
+		orderings = new ArrayList<ArrayList<Integer>>();
+		preferences = new LinkedList<Preference>();
 	}
 	
 	public GameSpec getSpec()
@@ -60,7 +63,7 @@ public class AgentUtilsExtension
 	 * @param o the offer
 	 * @return the total value
 	 */
-	protected int myActualOfferValue(Offer o) {
+	public int myActualOfferValue(Offer o) {
 		int ans = 0;
 		for (int num = 0; num < game.getNumIssues(); num++)
 			ans += o.getItem(num)[0] * game.getSimpleVHPoints().get(game.getIssuePluralNames()[num]);
@@ -72,7 +75,7 @@ public class AgentUtilsExtension
 	 * @param o the ordering
 	 * @return the total value
 	 */
-	protected int myActualOrderValue(ArrayList<Integer> o) {
+	public int myActualOrderValue(ArrayList<Integer> o) {
 		int ans = 0;
 		for (int num = 0; num < game.getNumIssues(); num++)
 			ans += o.get(num) * game.getSimpleVHPoints().get(game.getIssuePluralNames()[num]);
@@ -145,7 +148,7 @@ public class AgentUtilsExtension
 	 * @param o the offer
 	 * @return the total value
 	 */
-	protected int opponentValueMax(Offer o)
+	public int opponentValueMax(Offer o)
 	{
 		int max = 0;
 		for (ArrayList<Integer> order : orderings)
@@ -158,7 +161,7 @@ public class AgentUtilsExtension
 	 * @param o the offer
 	 * @return the total value
 	 */
-	protected int opponentValueMin(Offer o)
+	public int opponentValueMin(Offer o)
 	{
 		int min = 0;
 		for (ArrayList<Integer> order : orderings)
