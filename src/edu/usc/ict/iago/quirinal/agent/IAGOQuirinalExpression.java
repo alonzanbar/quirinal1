@@ -22,9 +22,9 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 			if(history.getPlayerHistory().getLast().getMessage().equals("happy"))
 				return "happy";
 			if(history.getPlayerHistory().getLast().getMessage().equals("surprised"))
-				return "insincereSmile";
+				return "surprised";
 			if(history.getPlayerHistory().getLast().getMessage().equals("angry"))
-				return "afraid";
+				return "sad";
 		} 
 		
 		/*
@@ -44,23 +44,7 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 			if(last.getMessageCode() > -1) {
 				switch(lastEvent.getMessageCode()) {
 					case 0://important both happy
-					case 3://get most valuable item
-					case 9://benefits both
 						return "happy";
-					case 1://I gave, you give
-					case 11://make an offer
-					case 2://split evenly
-					case 10: //no time!
-					case 6://best offer possible
-					case 5: //last offer
-						return "netural"; // section is redundant (can be using default),leaving for further changes.
-					case 8://can't go lower
-						return "surprised"
-					case 4: //accept or consequences
-					case 7: //offer sucks
-						return "disgusted";
-					default:
-						return "neutral";
 				}
 			}
 		}
@@ -75,7 +59,7 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 	@Override
 	protected String getFairEmotion() {
 		// TODO Auto-generated method stub
-		return "happy";
+		return "netural";
 	}
 	@Override
 	protected String getUnfairEmotion() {
