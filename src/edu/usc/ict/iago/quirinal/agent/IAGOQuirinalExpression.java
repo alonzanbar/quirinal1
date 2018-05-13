@@ -51,6 +51,7 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 		return "netural";
 		
 	}
+
 	@Override
 	protected String getSemiFairEmotion() {
 		// TODO Auto-generated method stub
@@ -65,6 +66,7 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 	protected String getUnfairEmotion() {
 		// TODO Auto-generated method stub
 		return "netural";
+
 	}
 
 }

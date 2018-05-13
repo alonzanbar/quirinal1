@@ -143,6 +143,8 @@ public class IAGOBuildingBehavior extends IAGOCoreBehavior implements BehaviorPo
 	protected Offer getRejectOfferFollowup(History history) {
 		return null;
 	}
+
+	
 	
 
 }
