@@ -48,24 +48,24 @@ public class IAGOQuirinalExpression extends IAGOCoreExpression implements Expres
 				}
 			}
 		}
-		return "netural";
+		return "neutral";
 		
 	}
 
 	@Override
 	protected String getSemiFairEmotion() {
 		// TODO Auto-generated method stub
-		return "netural";
+		return "neutral";
 	}
 	@Override
 	protected String getFairEmotion() {
 		// TODO Auto-generated method stub
-		return "netural";
+		return "neutral";
 	}
 	@Override
 	protected String getUnfairEmotion() {
 		// TODO Auto-generated method stub
-		return "netural";
+		return "neutral";
 
 	}
 

@@ -15,10 +15,11 @@ public class RelationDistribution {
 	
 	private Map<Preference, Double> relationDist;
 	
-	private final Map<Preference, List<Double>> relationScores; 	
+	private final Map<Preference, List<Double>> relationScores = new HashMap<>(); 
+	private final Map<String, Preference> issuesPrefMap = new HashMap<>(); 
 	
 	public RelationDistribution(int numIssues) {
-		relationScores = initializeRelations(numIssues);
+		initializeRelations(numIssues);
 
 		relationDist = recompute(relationScores);
 	}	
@@ -30,13 +31,8 @@ public class RelationDistribution {
 			return;
 		}
 		for(Entry<Preference, Double> entry : newScores.entrySet()) {
-			// caveat if preference here does not match with preference
-			// we hold! for example if the order is reversed.
-			if (!relationScores.containsKey(entry.getKey())) {
-				throw new RuntimeException("Relation not found: (equals? getHashCode?)" + entry.getKey());
-			}
-			
-			relationScores.get(entry.getKey()).add(entry.getValue());
+			Preference pref = getPrefByIssues(entry.getKey().getIssue1(),entry.getKey().getIssue2());
+			relationScores.get(pref).add(entry.getValue());
 		}
 		
 		relationDist = recompute(relationScores);
@@ -62,26 +58,17 @@ public class RelationDistribution {
 		}
 		return recomputedDist;
 	}
-	
-	private double getProbability(int issue1, int issue2) {
-		// Preference does not implement equals and getHashCode. 
-		// Can't directly locate via a cloned object
-		// Also - we create relations for issues in ascending order.
+	public Preference getPrefByIssues(Integer issue1,Integer issue2) {
 		if (issue1 > issue2) {
 			int temp = issue2;
 			issue2 = issue1; 
 			issue1 = temp;
 		}
-		
-		for(Preference pref : relationDist.keySet()) {
-			
-			boolean isMatch = (pref.getIssue1() == issue1 && pref.getIssue2() == issue2);					
-			if (isMatch) {
-				return relationDist.get(pref);
-			}
-		}
-		
-		throw new RuntimeException("Preference not found: " + issue1 + ", " + issue2);
+		return issuesPrefMap.get(issue1.toString() + issue2.toString());
+	}
+	
+	private double getProbability(int issue1, int issue2) {
+				return relationDist.get(getPrefByIssues(issue1,issue2));
 	}
 	
 	public double calcOrderLikelihood(Ordering ord) {
@@ -99,15 +86,20 @@ public class RelationDistribution {
 		return prob;
 	}
 	
-	private Map<Preference, List<Double>> initializeRelations(int numIssues) {
-		Map<Preference, List<Double>> scores = new HashMap<>(); 
-		for (int issue1 = 1; issue1 < numIssues; issue1++) {
-			for (int issue2 = issue1 + 1; issue2 < numIssues + 1; issue2++) {
+	private void  initializeRelations(int numIssues) {
+		/* temporary solution for the pref map : 
+		 * A map between issues and pref
+		 * TODO: refactor relationScores key to be issue1.toString()+issue.toString() as all relations are "less than" so it's unqie 
+		*/
+		
+		for (Integer issue1 = 1; issue1 < numIssues; issue1++) {
+			for (Integer issue2 = issue1 + 1; issue2 < numIssues + 1; issue2++) {
 				Preference pref = new Preference(issue1, issue2, Relation.LESS_THAN, false);
-				scores.put(pref, new ArrayList<>());
+				relationScores.put(pref, new ArrayList<>());
+				issuesPrefMap.put(issue1.toString() +issue2.toString(), pref);
 			}
 		}		
-		return scores;
+
 	}
 
 	public Collection<Preference> getPreferences() {
