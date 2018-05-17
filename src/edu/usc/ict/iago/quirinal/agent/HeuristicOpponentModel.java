@@ -17,8 +17,11 @@ import edu.usc.ict.iago.utils.History;
 import edu.usc.ict.iago.utils.MathUtils;
 import edu.usc.ict.iago.utils.Offer;
 import edu.usc.ict.iago.utils.Preference;
+import edu.usc.ict.iago.utils.Preference.Relation;
 
 public class HeuristicOpponentModel implements OpponentModel{
+
+	private static final double CONST_PREF_W = 0.9;
 
 	private final Map<Ordering, Double> orderings;
 	
@@ -88,8 +91,67 @@ public class HeuristicOpponentModel implements OpponentModel{
 		if( event.getMessageCode() == 101) {
 			// TODO - offer accepted, get last proposed offer
 		}
-			
+		if(event.getPreference() != null) // preference accepted
+		{
+			return updatePrefReceived(event.getPreference());
+		}
 		return this;
+	}
+
+	private OpponentModel updatePrefReceived(Preference preference) {
+		preference.setIssue1(preference.getIssue1()+1);
+		preference.setIssue2(preference.getIssue2()+1);
+		Map<Preference, Double> newScores = new HashMap<Preference, Double>();
+		int issue1 = 0;
+		int issue2  = 0;
+		int sign = 0;
+		switch (preference.getRelation()) {
+		case LESS_THAN:
+			if (preference.getIssue1()<preference.getIssue2()) {
+				 issue1 = preference.getIssue1();
+				 issue2 = preference.getIssue2();
+				 sign = 1;
+			}
+			else {
+				 issue1 = preference.getIssue2();
+				 issue2 = preference.getIssue1();
+				 sign = -1;
+			}
+			newScores.put(new Preference(issue1, issue2, Relation.LESS_THAN, false), sign * CONST_PREF_W);
+			break;
+		case GREATER_THAN:
+			if (preference.getIssue1()<preference.getIssue2()) {
+				 issue1 = preference.getIssue1();
+				 issue2 = preference.getIssue2();
+				 sign = -11;
+			}
+			else {
+				 issue1 = preference.getIssue2();
+				 issue2 = preference.getIssue1();
+				 sign = 1;
+			}
+			newScores.put(new Preference(issue1, issue2, Relation.LESS_THAN, false), sign * CONST_PREF_W);
+			break;
+		case BEST:
+			for (Preference pref : distribution.getPreferences()) {
+				if (pref.getIssue2()== preference.getIssue1()) {
+					newScores.put(new Preference(pref), CONST_PREF_W);
+				}
+			}
+			break;
+		case WORST:
+			for (Preference pref : distribution.getPreferences()) {
+				if (pref.getIssue1()== preference.getIssue1()) {
+					newScores.put(new Preference(pref), CONST_PREF_W);
+				}
+			}
+			break;
+		default:
+			
+		}				
+		distribution.updateAll(newScores);
+		return calcLikelihoodAllOrdering();
+		
 	}
 
 	private OpponentModel updateOfferFormallyAccepted(Event event) {
@@ -105,13 +167,17 @@ public class HeuristicOpponentModel implements OpponentModel{
 		Map<Preference, Double> newScores = scoresFromAllocations(issueAllocations, prefs);
 		distribution.updateAll(newScores);
 		
+		return calcLikelihoodAllOrdering();
+		
+	}
+
+	private OpponentModel calcLikelihoodAllOrdering() {
 		for (Ordering ord : this.orderings.keySet()) {
 			double likelihood = distribution.calcOrderLikelihood(ord);
 			orderings.put(ord, likelihood);
 		}
 		
 		return this;
-		
 	}
 
 	private Map<Preference, Double> scoresFromAllocations(
