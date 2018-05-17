@@ -229,7 +229,6 @@ public abstract class IAGOCoreVH extends GeneralVH
 				if(myOfferValue - myAllocatedValue + behavior.getAcceptMargin() > opponentOfferValue - opponentAllocatedValue)
 					localFair = true;//offer improvement is within one max value item of the same for me and my opponent
 			
-			if(myOfferValue + behavior.getAcceptMargin() > opponentOfferValue)
 				totalFair = true;//total offer still fair
 			
 			if (localFair && !totalFair)
