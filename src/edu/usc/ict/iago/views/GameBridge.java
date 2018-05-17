@@ -208,7 +208,7 @@ public class GameBridge extends HttpServlet  {
 	}
 	
 	@OnMessage
-	public void onMessage(javax.websocket.Session session, String msg, boolean last) 
+	public void onMessage(javax.websocket.Session session, final String msg, boolean last) 
 	{
 		WebSocketUtils.JsonObject joIn = (WebSocketUtils.JsonObject)AccessController.doPrivileged(new PrivilegedAction<Object>()
 		{

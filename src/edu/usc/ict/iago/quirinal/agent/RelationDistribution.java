@@ -104,7 +104,7 @@ public class RelationDistribution {
 		for (int issue1 = 1; issue1 < numIssues; issue1++) {
 			for (int issue2 = issue1 + 1; issue2 < numIssues + 1; issue2++) {
 				Preference pref = new Preference(issue1, issue2, Relation.LESS_THAN, false);
-				scores.put(pref, new ArrayList<>());
+				scores.put(pref, new ArrayList<Double>());
 			}
 		}		
 		return scores;

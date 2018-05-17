@@ -1,6 +1,8 @@
 package edu.usc.ict.iago.quirinal.agent;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 
 import edu.usc.ict.iago.agent.AgentUtilsExtension;
 import edu.usc.ict.iago.agent.IAGOCoreBehavior;
@@ -16,6 +18,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 	private OpponentModel opponentModel;
 	private GameSpec game;	
 	private Offer allocated;
+	private long time = System.currentTimeMillis();
 		
 	@Override
 	protected void setUtils(AgentUtilsExtension utils)
@@ -31,6 +34,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		opponentModel = new HeuristicOpponentModel(game);
 	}
 
+	
 
 	@Override
 	public Offer getNextOffer(History history) 
@@ -42,12 +46,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		Ordering playerPref = opponentModel.getTopOrderings(1).get(0);
 		
 		ArrayList<Integer> vhPref = utils.getVHOrdering();
-		int[] free = new int[game.getNumIssues()];
-		
-		for(int issue = 0; issue < game.getNumIssues(); issue++)
-		{
-			free[issue] = allocated.getItem(issue)[1];
-		}
+		int[] free = GetFree();
 		
 		//find top deals
 		int topPlay = -1;
@@ -75,7 +74,12 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		else if(topPlay == topVH)//we're wanting the same thing			
 		{
 			if(free[topPlay] >= 2)
-				propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0] + 1, free[topPlay] - 2, allocated.getItem(topPlay)[2] + 1});//split evenly
+				//for even free[topPlay]
+				if (((free[topPlay]/2)*2) == free[topPlay])
+					propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0] + free[topPlay]/2, 0, allocated.getItem(topPlay)[2] + free[topPlay]/2});//split evenly
+				//for odd free[topPlay]
+				else
+					propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0] + free[topPlay]/2, 1, allocated.getItem(topPlay)[2] + free[topPlay]/2});//split evenly
 			else
 				propose.setItem(topPlay, new int[] {allocated.getItem(topPlay)[0], free[topPlay] - 1, allocated.getItem(topPlay)[2] + 1});//give give
 		}
@@ -138,22 +142,43 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 	{
 		return allocated;
 	}
+	
 	@Override
 	protected Offer getAcceptOfferFollowup(History history) {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 
 	@Override
 	protected Offer getFirstOffer(History history) {
-		// TODO Auto-generated method stub
-		return null;
+		 
+		//start from where we currently have accepted
+		Offer propose = new Offer(game.getNumIssues());
+		
+		ArrayList<Integer> vhPref = utils.getVHOrdering();
+		
+		int indexWithHighVHPreference = 0;
+		int highVHPreference = 0;
+		for (int i = 0; i < vhPref.size(); i++) {
+			if (vhPref.get(i) > highVHPreference) {
+				highVHPreference = vhPref.get(i);
+				indexWithHighVHPreference = i;
+			}
+		}
+		
+		int[] free = GetFree();
+		
+		for(int issue = 0; issue < game.getNumIssues(); issue++)
+			propose.setItem(issue,  allocated.getItem(issue));
+		propose.setItem(indexWithHighVHPreference, new int[] {allocated.getItem(indexWithHighVHPreference)[0] + 1, free[indexWithHighVHPreference] - 2, allocated.getItem(indexWithHighVHPreference)[2] + 1});
+		return propose;
 	}
 
 	@Override
 	protected int getAcceptMargin() {
-		// TODO Auto-generated method stub
-		return 0;
+		long currentTime = System.currentTimeMillis();
+		double returnValue = (currentTime - time)/0.000033; 
+		return (int)returnValue;
 	}
 
 	@Override
@@ -182,6 +207,14 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		opponentModel.update(event);		
 	}
 
-
+	private int[] GetFree() {
+		int[] free = new int[game.getNumIssues()];
+		
+		for(int issue = 0; issue < game.getNumIssues(); issue++)
+		{
+			free[issue] = allocated.getItem(issue)[1];
+		}
+		return free;
+	}
 
 }
