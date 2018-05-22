@@ -309,8 +309,6 @@ public abstract class IAGOCoreVH extends GeneralVH
 				}
 			}
 			
-			Event e0 = new Event(History.VH_ID, Event.EventClass.SEND_EXPRESSION, expression.getExpression(getHistory()), 2000, 1000);
-			resp.add(e0);
 			
 			Event e1 = new Event(History.VH_ID, Event.EventClass.SEND_MESSAGE, messages.getMessageResponse(getHistory(), game), 3000);
 			resp.add(e1);
