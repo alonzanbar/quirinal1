@@ -18,7 +18,7 @@ import edu.usc.ict.iago.utils.ServletUtils;
 
 
 public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolicy {
-		protected final String[] proposal = {"I think this deal is acceptable.", 
+	protected final String[] proposal = {"I think this deal is acceptable.", 
 						 			   "I think you'll find this offer to be satisfactory.", 
 						 			   "Check out this arrangement. I see it fair.", 
 						 			   "I think this deal will interest you.",
@@ -62,6 +62,7 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 	private int positive = 0, negative = 0; //Count negative and positive feedback from player
 	private final int disclosure = 3; // level of disclosure (in 1 of "disclosure" times the agent will tell information).
 	private boolean inHurry = false;
+	private int highestOfferSum = 0;
 	@Override
 	protected void setUtils(AgentUtilsExtension utils)
 	{
@@ -140,23 +141,28 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 		for(Event e: history.getPlayerHistory())
 			if(e.getType() == Event.EventClass.SEND_OFFER)
 				playerOfferCount++;
+			else if (e.getType() == Event.EventClass.GAME_END)
+				playerOfferCount = 0;
+		
 		
 		int offerCount = 0;
 		for(Event e: history.getHistory())
 			if(e.getType() == Event.EventClass.SEND_OFFER)
 				offerCount++;
+			else if (e.getType() == Event.EventClass.GAME_END)
+				offerCount = 0;
 		
-		//Last offer and are all items splited
+		//Last offer and are all items splitted
 		boolean isFull = true;
 		Event lastOffer = null;
-		if (offerCount > 0)
+		if (playerOfferCount > 0)
 		{
-			int index = history.getHistory().size() - 1;
-			lastOffer = history.getHistory().get(index);
+			int index = history.getPlayerHistory().size() - 1;
+			lastOffer = history.getPlayerHistory().get(index);
 			while (lastOffer.getType() != Event.EventClass.SEND_OFFER)
 			{
 				index--;
-				lastOffer = history.getHistory().get(index);
+				lastOffer = history.getPlayerHistory().get(index);
 			}
 			Offer o = lastOffer.getOffer();
 			for (int i = 0; i < o.getIssueCount(); i++)
@@ -164,6 +170,10 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				if(o.getItem(i)[1] != 0)//some undecided items
 					isFull = false;
 			}
+			int sum = utils.myActualOfferValue(o);
+			if ( sum > highestOfferSum)
+				highestOfferSum = sum; 
+			ServletUtils.log("New offer value is: " + Integer.toString(highestOfferSum), ServletUtils.DebugLevels.DEBUG);
 		}
 
 		Event ePrime = history.getPlayerHistory().getLast();
@@ -322,15 +332,20 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				break;
 			case 6:
 				negative++;
-					if (offerCount > 0)
+					if (playerOfferCount > 0)
 					{
 						int avgPlayerValue = (Math.abs(utils.opponentValueMax(lastOffer.getOffer()) - utils.opponentValueMin(lastOffer.getOffer())))/2;
 						if (Math.abs(utils.myActualOfferValue(lastOffer.getOffer()) - avgPlayerValue) > game.getNumIssues() * 2)//fair is defined as within one of the most valuable items away from each other
 						{
-							if (positive >= negative+2) 
-								resp = "Umm. I actually think we can come up with a better deal. One that is more even split.";
+							if (utils.myActualOfferValue(lastOffer.getOffer()) < highestOfferSum)
+									resp = "I'm sorry, but I believe your last offers were more preferable.";
 							else 
-								resp = "Well, is it?";
+							{
+								if (positive >= negative+2) 
+									resp = "Umm. I actually think we can come up with a better deal. One that is more even split.";
+								else 
+									resp = "Well, is it?";
+							}
 							if (best >= 0)
 								resp += "  Isn't it true that you like " + game.getIssuePluralNames()[best] + " best?";
 							if (worst >= 0)
@@ -356,20 +371,30 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				if (inHurry)
 					resp += " We are running out of time.";
 				break;
-			case 8:
+			case 9:
 				positive++;
 				if (positive >= negative) 
 					resp = "I understand you completely, but in order for us to succeed, please tell me something more about your preference.";
 				else
 					resp = "That's correct. Just keep in mind that there are two ends to this deal.";
 				break;
-			case 9:
+			case 8:
 				negative++;
 				int suggest = best >= 0 ? best : (int)(Math.random() * game.getNumIssues());
+				if (utils.myActualOfferValue(lastOffer.getOffer()) < highestOfferSum)
+				{
+					if (negative > positive)
+						resp = "Hmm. Well, I actually liked your past offers better.";
+					else
+						resp = "I understand, please let me think about it. In the meantime, are you sure you can't compromise a bit more? I surely be grateful.";
+				}
+				else
 				resp = "I understand you have your own requirements, but if I give you some "+ game.getIssuePluralNames()[suggest]
 						+ ", what can you bring me in return?";
+				
 				if (!isFull)
 					resp += " Also, what about the rest of the undecided items?";
+				break;
 			case 10:
 				int time = getTime(history,game);
 				int min = time / 60;
