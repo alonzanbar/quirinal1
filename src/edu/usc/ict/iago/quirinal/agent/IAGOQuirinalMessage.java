@@ -381,8 +381,7 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 			case 8:
 				negative++;
 				int suggest = best >= 0 ? best : (int)(Math.random() * game.getNumIssues());
-				if (playerOfferCount > 0)
-				if (utils.myActualOfferValue(lastOffer.getOffer()) < highestOfferSum)
+				if (playerOfferCount > 0 && utils.myActualOfferValue(lastOffer.getOffer()) < highestOfferSum)
 				{
 					if (negative > positive)
 						resp = "Hmm. Well, I actually liked your past offers better.";
