@@ -1,13 +1,8 @@
 package edu.usc.ict.iago.quirinal.agent;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -15,9 +10,7 @@ import java.util.Set;
 import java.util.Collections;
 
 import edu.usc.ict.iago.agent.AgentUtilsExtension;
-import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
-import edu.usc.ict.iago.utils.MathUtils;
 import edu.usc.ict.iago.utils.Preference;
 import edu.usc.ict.iago.utils.ServletUtils;
 import edu.usc.ict.iago.utils.Preference.Relation;
@@ -28,6 +21,8 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension {
 
 	private ArrayList<Integer> VHUtility = null;
 	private ArrayList<Integer> playerUtility = null;
+
+	private OpponentModel oppoModel;
 
 	/**
 	 * Configures initial parameters for the given game.
@@ -229,6 +224,15 @@ public class AgentQuirinaUtilsExtension extends AgentUtilsExtension {
 			}
 		}
 		return ans;
+	}
+
+	public void setOpponentModel(OpponentModel opponentModel) {
+		// TODO Auto-generated method stub
+		this.oppoModel = opponentModel;
+	}
+	
+	public OpponentModel getOpponentModel() {
+		return oppoModel;
 	}
 
 }

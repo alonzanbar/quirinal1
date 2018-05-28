@@ -5,10 +5,6 @@ import java.util.LinkedList;
 
 import javax.websocket.Session;
 
-import edu.usc.ict.iago.quirinal.agent.AgentQuirinaUtilsExtension;
-import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalBehavior;
-import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalExpression;
-import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalMessage;
 import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.GeneralVH;
@@ -22,13 +18,14 @@ public abstract class IAGOCoreVH extends GeneralVH
 	
 	private Offer lastOfferReceived;
 	private Offer lastOfferSent;
-	private IAGOCoreBehavior behavior;
-	private IAGOCoreExpression expression;
-	private IAGOCoreMessage messages;
-	private AgentUtilsExtension utils;
+	protected IAGOCoreBehavior behavior;
+	protected IAGOCoreExpression expression;
+	protected IAGOCoreMessage messages;
+	protected AgentUtilsExtension utils;
 	private boolean timeFlag = false;
 	private boolean firstFlag = false;
 	private int noResponse = 0;
+	private int noResponseLimit = 5;
 	private boolean noResponseFlag = false;
 	private boolean firstGame = true;
 	
@@ -44,9 +41,8 @@ public abstract class IAGOCoreVH extends GeneralVH
 		this.messages = messages;
 		this.behavior = behavior;
 		
-		this.messages.setUtils(utils);
 		this.behavior.setUtils(utils);
-		
+		this.messages.setUtils(utils);
 	}
 
 	@Override
@@ -67,8 +63,11 @@ public abstract class IAGOCoreVH extends GeneralVH
 			//AgentUtilsExtension aue = new AgentUtilsExtension();
 			utils.configureGame(game);
 			//this.utils = aue;
+			
+			// this has a side effect - utils.opponentModel 
+			// is initialized after the behaviour setUtils
+			this.behavior.setUtils(utils);	
 			this.messages.setUtils(utils);
-			this.behavior.setUtils(utils);		
 			
 			//if we wanted, we could change our Policies between games
 			
@@ -76,6 +75,7 @@ public abstract class IAGOCoreVH extends GeneralVH
 			timeFlag = false;
 			firstFlag = false;
 			noResponse = 0;
+			noResponseLimit = 5;
 			noResponseFlag = false;
 			
 			if(!firstGame)
@@ -159,20 +159,17 @@ public abstract class IAGOCoreVH extends GeneralVH
 			noResponse += 1;
 			for(int i = getHistory().getHistory().size() - 1 ; i > 0 && i > getHistory().getHistory().size() - 4; i--)//if something from anyone for two time intervals
 			{
-				if(getHistory().getHistory().get(i).getType() != Event.EventClass.TIME)
+				if(getHistory().getHistory().get(i).getType() != Event.EventClass.TIME) {
 					noResponse = 0;
-			}
-						
-			if(noResponse >= 2)
-			{
-				Event e1 = new Event(History.VH_ID, Event.EventClass.SEND_MESSAGE, messages.getMessageResponse(getHistory(), game), 0);
-				resp.add(e1);
-				noResponseFlag = true;
+				}
+				
 			}
 			
-			else if(noResponse >= 1 && noResponseFlag)
+			// every time we reach a limit
+			if(noResponse == noResponseLimit)
 			{
-				noResponseFlag = false;
+				// next time we will back off a little and let the player more time to respond.
+				noResponseLimit = (int)Math.ceil(noResponseLimit*1.5);
 				Event e2 = new Event(History.VH_ID, Event.EventClass.SEND_OFFER, behavior.getTimingOffer(getHistory()));
 				if(e2.getOffer() != null)
 				{
@@ -181,8 +178,7 @@ public abstract class IAGOCoreVH extends GeneralVH
 					Event e4 = new Event(History.VH_ID, Event.EventClass.SEND_MESSAGE, messages.getProposalLang(getHistory(), game), 1000);
 					resp.add(e4);
 					resp.add(e2);
-				}
-				
+				}				
 			}
 			
 			
@@ -203,7 +199,7 @@ public abstract class IAGOCoreVH extends GeneralVH
 		//what to do when the player sends an offer
 		if(e.getType().equals(Event.EventClass.SEND_OFFER))
 		{
-			ArrayList<Integer> playerOrder = behavior.getOpponentOrder();	
+			ArrayList<Integer> playerOrder = new ArrayList<>(behavior.getOpponentOrder());	
 			ServletUtils.log("Agent Normalized ordering: " + utils.getVHOrdering(), ServletUtils.DebugLevels.DEBUG);
 			ServletUtils.log("Optimal ordering: " + playerOrder, ServletUtils.DebugLevels.DEBUG);
 	

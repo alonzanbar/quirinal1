@@ -1,6 +1,6 @@
 package edu.usc.ict.iago.agent;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import edu.usc.ict.iago.utils.BehaviorPolicy;
 import edu.usc.ict.iago.utils.Event;
@@ -76,5 +76,5 @@ public abstract class IAGOCoreBehavior implements BehaviorPolicy
 
 	public abstract void update(Event event);
 
-	public abstract ArrayList<Integer> getOpponentOrder();
+	public abstract List<Integer> getOpponentOrder();
 }

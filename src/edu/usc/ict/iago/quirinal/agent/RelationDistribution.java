@@ -1,7 +1,6 @@
 package edu.usc.ict.iago.quirinal.agent;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,13 +12,17 @@ import edu.usc.ict.iago.utils.Preference.Relation;
 
 public class RelationDistribution {
 	
-	private Map<Preference, Double> relationDist;
+	private Map<String, Double> relationDist;
 	
-	private final Map<Preference, List<Double>> relationScores = new HashMap<>(); 
-	private final Map<String, Preference> issuesPrefMap = new HashMap<>(); 
+	private static final double EPSILON = 0.01;
+	
+	private int numIssues;
+	
+	private final Map<String , List<Double>> relationScores;
 	
 	public RelationDistribution(int numIssues) {
-		initializeRelations(numIssues);
+		this.numIssues = numIssues;
+		this.relationScores = initializeRelations(numIssues);
 
 		relationDist = recompute(relationScores);
 	}	
@@ -30,55 +33,71 @@ public class RelationDistribution {
 			// don't know how to score a relation based on a single issue
 			return;
 		}
+		
 		for(Entry<Preference, Double> entry : newScores.entrySet()) {
-			Preference pref = getPrefByIssues(entry.getKey().getIssue1(),entry.getKey().getIssue2());
-			relationScores.get(pref).add(entry.getValue());
+			Preference pref = entry.getKey();
+			if (pref.getIssue1() >= pref.getIssue2() || pref.getRelation() != Relation.LESS_THAN) {
+				throw new RuntimeException("Illegal preference argument: " + pref);
+			}
+					
+			String pk1 = toKey(entry.getKey());			
+			relationScores.get(pk1).add(entry.getValue());
 		}
 		
 		relationDist = recompute(relationScores);
 
 	}
 	
-	private static Map<Preference, Double> recompute(Map<Preference, List<Double>> allScores) {
-		Map<Preference, Double> recomputedDist = new HashMap<>();		
-		for(Entry<Preference, List<Double>> entry : allScores.entrySet()) {
-			List<Double> scores = entry.getValue();
-			recomputedDist.put(entry.getKey(), average(scores));				
-		}
-		
-		double sumExpScores = 0.0;
-		for (double score: recomputedDist.values()) {
-			sumExpScores += Math.exp(score);
-		}
-		
-		for(Preference pref : recomputedDist.keySet()) {
-			double score = recomputedDist.get(pref);
-			double normScore = Math.exp(score) / sumExpScores;
-			recomputedDist.put(pref, normScore);
-		}
-		return recomputedDist;
-	}
-	public Preference getPrefByIssues(Integer issue1,Integer issue2) {
-		if (issue1 > issue2) {
-			int temp = issue2;
-			issue2 = issue1; 
-			issue1 = temp;
-		}
-		return issuesPrefMap.get(issue1.toString() + issue2.toString());
+	private static String toKey(int issue1, int issue2) {
+		return String.valueOf(issue1) +" < " +String.valueOf(issue2); 
 	}
 	
-	private double getProbability(int issue1, int issue2) {
-				return relationDist.get(getPrefByIssues(issue1,issue2));
+	private static String toKey(Preference pref) {
+		if (pref.getRelation() != Relation.LESS_THAN) {
+			throw new RuntimeException("Relation must be less than on: "  + pref);
+		}
+		
+		return toKey(pref.getIssue1(), pref.getIssue2());
+	}
+	
+	private Map<String, Double> recompute(Map<String, List<Double>> allScores) {
+		Map<String, Double> recomputedDist = new HashMap<>();		
+		
+		for (Integer issue1 = 1; issue1 < numIssues; issue1++) {
+			for (Integer issue2 = issue1 + 1; issue2 < numIssues + 1; issue2++) {
+				String pk = toKey(issue1, issue2);
+				double avg = average(allScores.get(pk));
+				double sigmoid = 1.0 / (1 + Math.exp(-avg));
+				recomputedDist.put(pk, sigmoid);
+			}
+		}		
+		return recomputedDist;
+	}	
+	
+	private double getProb(int issue1, int issue2) {
+		int i1 = issue1;
+		int i2 = issue2;
+		boolean isComplementary = issue1 > issue2;
+		if (isComplementary) {
+			i1 = issue2;
+			i2 = issue1;			
+		}
+		double prob = this.relationDist.get(toKey(i1, i2));
+		prob = isComplementary ? 1 - prob : prob;
+		return prob;
 	}
 	
 	public double calcOrderLikelihood(Ordering ord) {
 		double sumLogProb = 0.0;
-		
+		// ordering: [3, 4, 1, 2]
+		// interpreted as: (3 < 4) AND (3 < 1) AND (3 < 2) AND (4 < 1) AND (4 < 2) AND AND (1 < 2)   
 		for (int i = 0; i < ord.numIssues - 1; i++) {
-			for (int j = i+1; j < ord.numIssues; j++) {
-				int issue1 = ord.get(i);
-				int issue2 = ord.get(j);
-				double prob = getProbability(issue1, issue2);
+			for (int j = i + 1; j < ord.numIssues; j++) {
+				
+				int issue1 = ord.getIssue(i);
+				int issue2 = ord.getIssue(j);	
+				
+				double prob = getProb(issue1, issue2);			
 				sumLogProb += Math.log(prob);
 			}
 		}
@@ -86,24 +105,17 @@ public class RelationDistribution {
 		return prob;
 	}
 	
-	private void  initializeRelations(int numIssues) {
-		/* temporary solution for the pref map : 
-		 * A map between issues and pref
-		 * TODO: refactor relationScores key to be issue1.toString()+issue.toString() as all relations are "less than" so it's unqie 
-		*/
-		
+	private static Map<String, List<Double>> initializeRelations(int numIssues) {
+		Map<String, List<Double>> relationScores = new HashMap<>();
 		for (Integer issue1 = 1; issue1 < numIssues; issue1++) {
 			for (Integer issue2 = issue1 + 1; issue2 < numIssues + 1; issue2++) {
-				Preference pref = new Preference(issue1, issue2, Relation.LESS_THAN, false);
-				relationScores.put(pref, new ArrayList<>());
-				issuesPrefMap.put(issue1.toString() +issue2.toString(), pref);
+				String pk1 = toKey(issue1, issue2);
+				relationScores.put(pk1, new ArrayList<>());
+				// start with a slight bias toward 1 < 2 < 3 < 4 order
+				relationScores.get(pk1).add(EPSILON);
 			}
-		}		
-
-	}
-
-	public Collection<Preference> getPreferences() {
-		return relationScores.keySet();
+		}
+		return relationScores;
 	}
 	
 	private static double average(List<Double> doubles) {

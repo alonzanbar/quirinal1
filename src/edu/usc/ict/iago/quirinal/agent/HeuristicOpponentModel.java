@@ -3,11 +3,8 @@ package edu.usc.ict.iago.quirinal.agent;
 import static edu.usc.ict.iago.utils.MathUtils.sortByValue;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -23,13 +20,17 @@ public class HeuristicOpponentModel implements OpponentModel{
 
 	private static final double CONST_PREF_W = 0.9;
 
-	private final Map<Ordering, Double> orderings;
+	private Map<Ordering, Double> orderings;
 	
 	private final RelationDistribution distribution;
 	
+	private final int numIssues;
+	
 	public HeuristicOpponentModel(GameSpec game) {
-		orderings = initializeOrderings(game.getNumIssues());
-		distribution = new RelationDistribution(game.getNumIssues());
+		this.numIssues = game.getNumIssues();
+		orderings = initializeOrderings(numIssues);
+		distribution = new RelationDistribution(numIssues);	
+		orderings = calcLikelihoodAllOrdering(orderings);
 	}
 
 	private static Map<Ordering, Double> initializeOrderings(int numIssues) {
@@ -45,17 +46,14 @@ public class HeuristicOpponentModel implements OpponentModel{
 	}
 
 	@Override
-	public List<Ordering> getTopOrderings(int topK) {
-		List<Ordering> topOrders = new ArrayList<>();
+	public Ordering getTopOrderings(int topK) {
+		if (topK >= orderings.size()) {
+			topK = orderings.size() - 1;
+		}
+		
 		LinkedList<Entry<Ordering, Double>> sorted = new LinkedList<>(
 				sortByValue(this.orderings).entrySet());
-		Iterator<Entry<Ordering, Double>> iter = sorted.descendingIterator();
-		// badly need java8 or guava library
-		while(iter.hasNext() && topOrders.size() < topK) {
-			Ordering ordering = iter.next().getKey();
-			topOrders.add(ordering);
-		}
-		return topOrders;
+		return sorted.get(topK).getKey();
 	}
 
 	@Override
@@ -91,7 +89,7 @@ public class HeuristicOpponentModel implements OpponentModel{
 		if( event.getMessageCode() == 101) {
 			// TODO - offer accepted, get last proposed offer
 		}
-		if(event.getPreference() != null) // preference accepted
+		if(event.getPreference() != null && !event.getPreference().isQuery()) // preference accepted
 		{
 			return updatePrefReceived(event.getPreference());
 		}
@@ -99,59 +97,69 @@ public class HeuristicOpponentModel implements OpponentModel{
 	}
 
 	private OpponentModel updatePrefReceived(Preference preference) {
-		preference.setIssue1(preference.getIssue1()+1);
-		preference.setIssue2(preference.getIssue2()+1);
+		Map<Preference, Double> newScores = getScoresFromPref(preference);			
+		return update(newScores);
+	}
+
+	private Map<Preference, Double> getScoresFromPref(Preference preference) {
+		Preference augmented = new Preference(preference);
+		augmented.setIssue1(augmented.getIssue1() + 1);
+		augmented.setIssue2(augmented.getIssue2() + 1);
+		
 		Map<Preference, Double> newScores = new HashMap<Preference, Double>();
-		int issue1 = 0;
-		int issue2  = 0;
-		int sign = 0;
-		switch (preference.getRelation()) {
+
+		int issue1 = augmented.getIssue1();
+		int issue2 = augmented.getIssue2();
+		int sign = 1;
+		int temp = 0;
+		switch (augmented.getRelation()) {
 		case LESS_THAN:
-			if (preference.getIssue1()<preference.getIssue2()) {
-				 issue1 = preference.getIssue1();
-				 issue2 = preference.getIssue2();
-				 sign = 1;
-			}
-			else {
-				 issue1 = preference.getIssue2();
-				 issue2 = preference.getIssue1();
-				 sign = -1;
-			}
-			newScores.put(new Preference(issue1, issue2, Relation.LESS_THAN, false), sign * CONST_PREF_W);
-			break;
 		case GREATER_THAN:
-			if (preference.getIssue1()<preference.getIssue2()) {
-				 issue1 = preference.getIssue1();
-				 issue2 = preference.getIssue2();
-				 sign = -11;
+			if(augmented.getRelation() == Relation.GREATER_THAN) {
+				// swap issues to get the less than relation
+				temp = issue2; 
+				issue2 = issue1;
+				issue1 = temp;
 			}
-			else {
-				 issue1 = preference.getIssue2();
-				 issue2 = preference.getIssue1();
-				 sign = 1;
-			}
-			newScores.put(new Preference(issue1, issue2, Relation.LESS_THAN, false), sign * CONST_PREF_W);
+			// check if you get the complementary relation
+			if (issue2 < issue1) {
+				// got the complementary relation. change score sign to negative
+				// and swap issues
+				sign = -1;
+				temp = issue2; 
+				issue2 = issue1;
+				issue1 = temp;
+			}			
+			newScores.put(createPref(issue1, issue2), sign*CONST_PREF_W);
 			break;
 		case BEST:
-			for (Preference pref : distribution.getPreferences()) {
-				if (pref.getIssue2()== preference.getIssue1()) {
-					newScores.put(new Preference(pref), CONST_PREF_W);
+			int bestIssue = augmented.getIssue1();
+			for(int i = 1; i < this.numIssues + 1; i++) {
+				if (i == bestIssue) {
+					continue;
 				}
+				newScores.put(createPref(i, bestIssue), CONST_PREF_W);
 			}
 			break;
 		case WORST:
-			for (Preference pref : distribution.getPreferences()) {
-				if (pref.getIssue1()== preference.getIssue1()) {
-					newScores.put(new Preference(pref), CONST_PREF_W);
+			int worstIssue = augmented.getIssue1();
+			for(int i = 1; i < this.numIssues + 1; i++) {
+				if (i == worstIssue) {
+					continue;
 				}
+				newScores.put(createPref(worstIssue, i), CONST_PREF_W);
 			}
 			break;
 		default:
-			
-		}				
+			// Do nothing
+		}
+		return newScores;
+	}
+	
+	private OpponentModel update(Map<Preference, Double> newScores) {
 		distribution.updateAll(newScores);
-		return calcLikelihoodAllOrdering();
-		
+		orderings = calcLikelihoodAllOrdering(orderings);
+		return this;
 	}
 
 	private OpponentModel updateOfferFormallyAccepted(Event event) {
@@ -161,39 +169,40 @@ public class HeuristicOpponentModel implements OpponentModel{
 
 	private OpponentModel updateOfferReceived(Event event) {
 		Offer offer = event.getOffer();
-		Map<Integer, Double> issueAllocations = calcIssueAllocations(offer);
-		Collection<Preference> prefs = distribution.getPreferences();
-		
-		Map<Preference, Double> newScores = scoresFromAllocations(issueAllocations, prefs);
-		distribution.updateAll(newScores);
-		
-		return calcLikelihoodAllOrdering();
-		
+		Map<Integer, Double> issueAllocations = calcIssueAllocations(offer);		
+		Map<Preference, Double> newScores = scoresFromAllocations(issueAllocations);
+		return update(newScores);		
 	}
 
-	private OpponentModel calcLikelihoodAllOrdering() {
-		for (Ordering ord : this.orderings.keySet()) {
+	private Map<Ordering, Double> calcLikelihoodAllOrdering(Map<Ordering, Double> orderProbs) {
+		Map<Ordering, Double> newProbs = new HashMap<>();
+		for (Ordering ord : orderProbs.keySet()) {			
 			double likelihood = distribution.calcOrderLikelihood(ord);
-			orderings.put(ord, likelihood);
-		}
-		
-		return this;
+			newProbs.put(ord, likelihood);
+		}		
+		return newProbs;
+	}
+	
+	private static Preference createPref(int issue1, int issue2) {
+		return new Preference(issue1, issue2, Relation.LESS_THAN, false);
 	}
 
 	private Map<Preference, Double> scoresFromAllocations(
-			Map<Integer, Double> issueAllocations,
-			Collection<Preference> prefs) {
+			Map<Integer, Double> issueAllocations) {
 		Map<Preference, Double> newScores = new HashMap<>();
-		for (Preference pref : prefs) {
-			boolean isContained = issueAllocations.containsKey(pref.getIssue1());
-			isContained = isContained && issueAllocations.containsKey(pref.getIssue2());
-			if (!isContained) {
-				continue;
+		for (int issue1 = 1; issue1 < numIssues; issue1++) {
+			for (int issue2 = issue1 + 1; issue2 < numIssues + 1; issue2++) {
+				boolean has1 = issueAllocations.containsKey(issue1);
+				boolean has2 = issueAllocations.containsKey(issue2);
+				if(!has1 || !has2) {
+					continue;
+				}				
+				double alloc1 = issueAllocations.get(issue1);
+				double alloc2 = issueAllocations.get(issue2);
+				double score = calcScore(alloc1, alloc2);
+
+				newScores.put(createPref(issue1, issue2), score);				
 			}
-			double alloc1 = issueAllocations.get(pref.getIssue1());
-			double alloc2 = issueAllocations.get(pref.getIssue2());
-			double score = calcScore(alloc1, alloc2);
-			newScores.put(pref, score);
 		}
 		return newScores;
 	}

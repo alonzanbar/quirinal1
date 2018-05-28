@@ -1,15 +1,11 @@
 package edu.usc.ict.iago.agent;
 
-import java.util.ArrayList;
-
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.MessagePolicy;
 import edu.usc.ict.iago.utils.Preference;
 
 public abstract class IAGOCoreMessage implements MessagePolicy
 {
-	public abstract void updateOrderings (ArrayList<ArrayList<Integer>> orderings);
-	
 	protected abstract String getEndOfTimeResponse();
 	
 	protected abstract String getSemiFairResponse();

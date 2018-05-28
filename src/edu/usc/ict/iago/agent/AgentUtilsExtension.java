@@ -1,7 +1,6 @@
 package edu.usc.ict.iago.agent;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
 import edu.usc.ict.iago.utils.Event;

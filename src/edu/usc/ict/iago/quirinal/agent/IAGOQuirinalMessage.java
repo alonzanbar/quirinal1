@@ -1,6 +1,5 @@
 package edu.usc.ict.iago.quirinal.agent;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 import edu.usc.ict.iago.agent.AgentUtilsExtension;
@@ -58,23 +57,12 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 													"Speaking of our preferences, Why don't you tell me one of your own?"};
 	
 	private AgentUtilsExtension utils;
-	private ArrayList<ArrayList<Integer>> orderings = new ArrayList<ArrayList<Integer>>();
+	private OpponentModel oppoModel;
 	private int positive = 0, negative = 0; //Count negative and positive feedback from player
 	private final int disclosure = 3; // level of disclosure (in 1 of "disclosure" times the agent will tell information).
 	private boolean inHurry = false;
-	private int highestOfferSum = 0;
-	@Override
-	protected void setUtils(AgentUtilsExtension utils)
-	{
-		this.utils = utils;
-	}
-	
-	@Override
-	public void updateOrderings (ArrayList<ArrayList<Integer>> orderings)
-	{
-		this.orderings = orderings;
-	}
-	
+	private int highestOfferSum = 0;		
+		
 	public String getProposalLang(History history, GameSpec game){
 		return proposal[(int)(Math.random()*proposal.length)];
 	}
@@ -133,7 +121,8 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 	{
 		//Best and worst offers
 		int best = findBest();
-		int worst = findWorst(game);
+		int worst = findWorst();
+		
 		String resp = "";
 		
 		//How many offers have the player and agent suggested.
@@ -193,7 +182,7 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 			
 		}
 		Preference p = ePrime.getPreference();
-		if (p != null) //a preference was expressed
+		if (p != null && !p.isQuery()) //a preference was expressed
 		{
 			Relation myRelation;
 			if (p.getRelation() == Relation.BEST)
@@ -466,42 +455,21 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 
 	private int findBest()
 	{
-		for (ArrayList<Integer> order: orderings)
-		{
-			for (int i = 0; i < order.size(); i++)
-			{
-				if(order.get(i) == 1)
-					return i;
-			}
-		}
-		return -1;
+		Ordering mostLikely = oppoModel.getTopOrderings(0);
+		return mostLikely.getIssue(0);
 	}
 	
 	private int findSecondBest()
 	{
-		for (ArrayList<Integer> order: orderings)
-		{
-			for (int i = 0; i < order.size(); i++)
-			{
-				if(order.get(i) == 2)
-					return i;
-			}
-		}
-		return -1;
+		Ordering mostLikely = oppoModel.getTopOrderings(0);
+		return mostLikely.getIssue(1);
 	}
 
 	
-	private int findWorst(GameSpec game)
+	private int findWorst()
 	{
-		for (ArrayList<Integer> order: orderings)
-		{
-			for (int i = 0; i < order.size(); i++)
-			{
-				if(order.get(i) == game.getNumIssues())
-					return i;
-			}
-		}
-		return -1;
+		Ordering mostLikely = oppoModel.getTopOrderings(0);
+		return mostLikely.getIssue(mostLikely.numIssues - 1); 
 	}
 	
 	private String findVHItem(int order, GameSpec game)
@@ -517,5 +485,11 @@ public class IAGOQuirinalMessage extends IAGOCoreMessage implements MessagePolic
 				return s.getKey();
 		}
 		return null;
+	}
+
+	@Override
+	protected void setUtils(AgentUtilsExtension utils) {	
+		this.utils = utils;		
+		this.oppoModel = ((AgentQuirinaUtilsExtension)utils).getOpponentModel();
 	}
 }

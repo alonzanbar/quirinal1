@@ -118,7 +118,7 @@ class ResourceDistributiveGameSpec extends GameSpec{
 	
 	@Override
 	public int getTotalTime() {
-		return 12000;
+		return 120;
 	}
 	
 	@Override
