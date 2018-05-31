@@ -13,6 +13,7 @@ import edu.usc.ict.iago.utils.History;
 import edu.usc.ict.iago.utils.Offer;
 import edu.usc.ict.iago.utils.Preference;
 import edu.usc.ict.iago.utils.ServletUtils;
+import edu.usc.ict.iago.utils.Event.EventClass;
 
 public abstract class IAGOCoreVH extends GeneralVH
 {
@@ -78,6 +79,9 @@ public abstract class IAGOCoreVH extends GeneralVH
 			noResponse = 0;
 			noResponseLimit = 5;
 			noResponseFlag = false;
+			
+			lastOfferReceived = null;
+			lastOfferSent = null;
 			
 			if(!firstGame)
 			{
@@ -339,6 +343,11 @@ public abstract class IAGOCoreVH extends GeneralVH
 				}
 			}
 			return resp;
+		}
+		
+		if (e.getType() == EventClass.GAME_END) {
+			lastOfferReceived = null;
+			lastOfferSent = null;
 		}
 		
 		return null;
