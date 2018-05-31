@@ -69,6 +69,18 @@ public class AgentUtilsExtension
 		return ans;
 	}
 	
+	public int myTotalPoints(Offer o) {
+		int ans = 0;
+		for (int issue = 0; issue < game.getNumIssues(); issue++) {
+			int[] item = o.getItem(issue);
+			// allocated to me or my opponent
+			int qty = item[0] + item[2];
+			String issueName = game.getIssuePluralNames()[issue];
+			ans += qty * game.getSimpleVHPoints().get(issueName);
+		}
+		return ans;	
+	}
+	
 	/**
 	 * Returns the VH value of an ordering.
 	 * @param o the ordering

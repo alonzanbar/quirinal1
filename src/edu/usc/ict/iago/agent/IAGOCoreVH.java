@@ -5,6 +5,7 @@ import java.util.LinkedList;
 
 import javax.websocket.Session;
 
+import edu.usc.ict.iago.quirinal.agent.IAGOQuirinalBehavior;
 import edu.usc.ict.iago.utils.Event;
 import edu.usc.ict.iago.utils.GameSpec;
 import edu.usc.ict.iago.utils.GeneralVH;
@@ -121,24 +122,11 @@ public abstract class IAGOCoreVH extends GeneralVH
 		if(e.getType().equals(Event.EventClass.FORMAL_ACCEPT))
 		{
 			Event lastOffer = utils.lastEvent(getHistory().getHistory(), Event.EventClass.SEND_OFFER);
-			Event lastTime = utils.lastEvent(getHistory().getHistory(), Event.EventClass.TIME);
-			
-			int totalIssues = 0;
-			for (int i = 0; i < game.getNumIssues(); i++)
-				totalIssues += game.getIssueQuants()[i];
-			if(lastOffer != null && lastTime != null)
+			if(lastOffer != null)
 			{
-				//approximation based on distributive case
-				int fairSplit = ((game.getNumIssues() + 1) * totalIssues / 4);
-				//down to the wire, accept anything better than batna
-				if(utils.myActualOfferValue(lastOffer.getOffer()) > game.getVHBATNA() && Integer.parseInt(lastTime.getMessage()) + 30 > game.getTotalTime()) 
-				{
-					Event e0 = new Event(History.VH_ID, Event.EventClass.FORMAL_ACCEPT, 0);
-					resp.add(e0);
-					return resp;
-				}
-				//accept anything better than fair minus margin
-				if(utils.myActualOfferValue(lastOffer.getOffer()) > fairSplit - behavior.getAcceptMargin())
+				boolean shouldAccept = moreThanEnough(lastOffer.getOffer());
+				//accept anything better than half the points minus margin
+				if(shouldAccept)
 				{
 					Event e0 = new Event(History.VH_ID, Event.EventClass.FORMAL_ACCEPT, 0);
 					resp.add(e0);
@@ -221,12 +209,9 @@ public abstract class IAGOCoreVH extends GeneralVH
 			ServletUtils.log("Offered Agent Value: " + myOfferValue, ServletUtils.DebugLevels.DEBUG);
 			ServletUtils.log("Player Difference: " + (opponentOfferValue - opponentAllocatedValue), ServletUtils.DebugLevels.DEBUG);
 			
-			if(myOfferValue > myAllocatedValue)//net positive
-				if(myOfferValue - myAllocatedValue + behavior.getAcceptMargin() > opponentOfferValue - opponentAllocatedValue)
-					localFair = true;//offer improvement is within one max value item of the same for me and my opponent
+			localFair = myOfferValue > myAllocatedValue;//net positive
 			
-				totalFair = true;//total offer still fair
-			
+			totalFair = localFair && moreThanEnough(o);
 			if (localFair && !totalFair)
 			{
 				Event eExpr = new Event(History.VH_ID, Event.EventClass.SEND_EXPRESSION, expression.getSemiFairEmotion(), 2000, 0);
@@ -357,6 +342,18 @@ public abstract class IAGOCoreVH extends GeneralVH
 		}
 		
 		return null;
+	}
+
+	private boolean moreThanEnough(Offer o) {
+		
+		int myOfferValue = utils.myActualOfferValue(o);
+		int halfPoints = (int) Math.floor(utils.myTotalPoints(o) / 2.0);
+
+		// bad programming 
+		IAGOQuirinalBehavior behav = (IAGOQuirinalBehavior) behavior;
+		int offerThresh = (int) Math.ceil(halfPoints*behav.getAcceptMarginFactor());
+		boolean moreThanEnough = myOfferValue > offerThresh;
+		return moreThanEnough;
 	}
 
 	@Override

@@ -19,7 +19,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 	
 	private AgentUtilsExtension utils;
 	private OpponentModel opponentModel;
-	private AcceptCounter acceptCounter;
+	private AcceptAndRejectCounter acceptAndRejectCounter;
 	private GameSpec game;	
 	private Offer allocated;
 	private long time;
@@ -45,7 +45,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 			allocated.setItem(i, init);
 		}
 		opponentModel = new HeuristicOpponentModel(game);
-		acceptCounter = new AcceptCounter();
+		acceptAndRejectCounter = new AcceptAndRejectCounter();
 		((AgentQuirinaUtilsExtension) utils).setOpponentModel(opponentModel);
 	}
 
@@ -65,12 +65,16 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		if (shouldRandomizeOffer(history)) {
 			return GetRandomOffer();
 		}
-		
+		// one for me, one for you..
+		int nextQty = acceptAndRejectCounter.getNextQuantity();
+		return getNextOffer(nextQty);
+	}
+	
+	public Offer getNextOffer(int nextQty) {
 		List<Integer> playerPref = getOpponentOrder();
 		List<Integer> vhPref = utils.getVHOrdering();
-		// one for me, one for you..
-		int nextQty = acceptCounter.getNextQuantity();
 		return GetOfferFromCompareOrders(vhPref, playerPref, nextQty);
+		
 	}
 	
 	
@@ -150,7 +154,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 
 	@Override
 	protected Offer getFirstOffer(History history) {
-		int qty = acceptCounter.getNextQuantity();
+		int qty = acceptAndRejectCounter.getNextQuantity();
 		Offer propose = GetOfferFromCompareOrders(
 				utils.getVHOrdering(), 
 				opponentModel.getTopPreferences(), qty);
@@ -180,6 +184,29 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 			return 10;
 		}
 	}
+	
+	public double getAcceptMarginFactor() {
+		int totalSeconds = this.game.getTotalTime();
+		long currentTime = System.currentTimeMillis();
+		int elapsedSeconds = (int)Math.ceil((currentTime - time) / 1000.0);
+		
+		if (elapsedSeconds < 0 || elapsedSeconds > totalSeconds) {
+			// sanity..
+			return 1.0;
+		}
+		int remaining = totalSeconds - elapsedSeconds;
+		if (remaining > 180) {
+			return 1.2; // no compromise yet
+		} else if (remaining > 90) {
+			return 1.0;
+		} else if (remaining > 60) {
+			return 0.95;
+		} else if (remaining > 30) {
+			return 0.8;
+		} else {
+			return 0.75;
+		}
+	}
 
 	@Override
 	protected Offer getRejectOfferFollowup(History history) {
@@ -188,13 +215,19 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 		int topK = 3;
 		int random = r.nextInt(topK);
 		// we have been rejected :-(
+		
+		// if there were more then 2 rejected return null.
+		if (acceptAndRejectCounter.IfExaggerateRejected()) {
+			acceptAndRejectCounter.resetRejected();
+			return null;
+		}
 		// the next proposal should come from a different 
 		// opponent model. We associate a score with each 
 		// opponent model, choose uniformly from the top K 
 		// opponent models and propose according to the sampled one.		
 		List<Integer> playerPref = opponentModel.getTopOrderings(random).toPrefs();
 		ArrayList<Integer> vhPref = utils.getVHOrdering();	
-		int items = acceptCounter.getNextQuantity();
+		int items = acceptAndRejectCounter.getNextQuantity();
 		return GetOfferFromCompareOrders(vhPref, playerPref, items);
 	}
 
@@ -202,7 +235,13 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 	@Override
 	protected Offer getFinalOffer(History history) {
 		// TODO Auto-generated method stub
-		return null;
+		int[] qtys = game.getIssueQuants();
+		int sum = 0;
+		for(int q : qtys) {
+			sum += q;
+		}
+		
+		return getNextOffer(sum);
 	}
 
 
@@ -215,7 +254,7 @@ public class IAGOQuirinalBehavior extends IAGOCoreBehavior implements BehaviorPo
 
 	@Override
 	public void update(Event event) {
-		acceptCounter.update(event);
+		acceptAndRejectCounter.update(event);
 		opponentModel.update(event);
 		
 	}	
